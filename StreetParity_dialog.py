@@ -218,14 +218,17 @@ class StreetParityDialog(QDialog):
         # Create rules
         symbol_red = QgsSymbol.defaultSymbol(layer.geometryType())
         symbol_red.setColor(QColor('red'))
+        #set thickness of the line
+        symbol_red.setWidth(1)
         rule_red = QgsRuleBasedRenderer.Rule(symbol_red)
-        rule_red.setLabel("Both sides mixed")
+        rule_red.setLabel("Inconsistent Parity")
         rule_red.setFilterExpression('("PARITY_L" = \'both\') OR ("PARITY_R" = \'both\')')
 
         symbol_green = QgsSymbol.defaultSymbol(layer.geometryType())
         symbol_green.setColor(QColor('green'))
+        symbol_green.setWidth(1)
         rule_green = QgsRuleBasedRenderer.Rule(symbol_green)
-        rule_green.setLabel("No side mixed")
+        rule_green.setLabel("Consistent Parity")
         rule_green.setFilterExpression('("PARITY_L" != \'both\') AND ("PARITY_R" != \'both\')')
 
         # Create root rule and append the rules
