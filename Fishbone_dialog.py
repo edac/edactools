@@ -35,11 +35,36 @@ class FishboneDialog(QDialog):
         self.ui.buttonBox.accepted.connect(self.run)
         self.ui.buttonBox.rejected.connect(self.reject)
         # when the street layer is changed, update the street field combo box
-        self.ui.StreetComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.StreetComboBox.currentText())[0], self.ui.StreetStreetComboBox))
-        # when the address layer is changed, update the address field combo box
-        self.ui.AddressComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressComboBox.currentText())[0], self.ui.AddressStreetComboBox))
+        self.ui.StreetComboBox.currentIndexChanged.connect(self.street_layer_changed)
+        self.ui.AddressComboBox.currentIndexChanged.connect(self.address_layer_changed)
 
+    def street_layer_changed(self):
+        print("Street Layer Changed")
+        
+        
+        street_layer_name = self.ui.StreetComboBox.currentText()
+        if street_layer_name == "Select Street Layer":
+            return
+        self.ui.StreetStreetComboBox.clear()
 
+        #only string fields are allowed for street names
+        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
+
+        self.load_fields(street_layer, self.ui.StreetStreetComboBox)
+        
+    def address_layer_changed(self):
+        print("Address Layer Changed")
+        address_layer_name = self.ui.AddressComboBox.currentText()
+        if address_layer_name == "Select Address Layer":
+            return
+        self.ui.AddressStreetComboBox.clear()
+        #only INT fields are allowed for street names
+        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
+    
+        self.load_fields(address_layer, self.ui.AddressStreetComboBox)
+
+        
+        
 
     def nearest_segment_to_point(self, point, segments):
         #initialize the minimum distance
