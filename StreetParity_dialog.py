@@ -20,7 +20,7 @@ from shapely.ops import nearest_points
 import numpy as np
 
 class StreetParityDialog(QDialog):
- 
+
     def load_fields(self, layer, combo_box):
         combo_box.addItem("Select Field")
         for field in layer.fields():
@@ -43,16 +43,13 @@ class StreetParityDialog(QDialog):
         else:
             QMessageBox.warning(self, "No Layers", "No layers are currently loaded in the project.")
             
-
         self.ui.buttonBox.accepted.connect(self.run)
         self.ui.buttonBox.rejected.connect(self.reject)
-        #when the street layer is changed, update the street field combo box
+        # when the street layer is changed, update the street field combo box
         self.ui.StreetLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.StreetLayerComboBox.currentText())[0], self.ui.StreetLayerStreetFieldComboBox))
-        #when the address layer is changed, update the address field combo box
+        # when the address layer is changed, update the address field combo box
         self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerStreetFieldComboBox))
         self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerAddressNumberFieldComboBox))
-
-
 
     def nearest_segment_to_point(self, point, segments):
         """Find the nearest segment to a point from a GeoDataFrame of segments."""
@@ -72,8 +69,7 @@ class StreetParityDialog(QDialog):
         return segments.loc[min_distance_index]
 
     def nearest_inner_line(self, point, line):
-        """Find the nearest inner line to a point from a LineString or MultiLineString.
-        """
+        """Find the nearest inner line to a point from a LineString or MultiLineString."""
         if isinstance(line, LineString):
             return list(line.coords)
         
@@ -95,8 +91,7 @@ class StreetParityDialog(QDialog):
             raise ValueError("The line should be either LineString or MultiLineString.")
 
     def get_orientation_and_direction(self, points):
-        """Determine the orientation and direction of a line from a list of points.
-        """
+        """Determine the orientation and direction of a line from a list of points."""
         minx, miny = float('inf'), float('inf')
         maxx, maxy = -float('inf'), -float('inf')
 
@@ -112,8 +107,8 @@ class StreetParityDialog(QDialog):
             direction = 'increasing' if points[0][1] < points[1][1] else 'decreasing'
         
         return orientation, direction
-    
-    def calculate_parity(self,addresses):
+
+    def calculate_parity(self, addresses):
         if all(num % 2 == 0 for num in addresses):
             return 'even'
         elif all(num % 2 != 0 for num in addresses):
@@ -145,8 +140,8 @@ class StreetParityDialog(QDialog):
             if nearest_segment is None:
                 continue
 
-            if nearest_segment.OBJECTID not in street_addresses_by_side:
-                street_addresses_by_side[nearest_segment.OBJECTID] = {"left_addresses": [], "right_addresses": []}
+            if nearest_segment.unique_id not in street_addresses_by_side:
+                street_addresses_by_side[nearest_segment.unique_id] = {"left_addresses": [], "right_addresses": []}
 
             nearest_point = nearest_points(nearest_segment.geometry, point)[0]
             inner_line_coords = self.nearest_inner_line(nearest_point, nearest_segment.geometry)
@@ -159,9 +154,8 @@ class StreetParityDialog(QDialog):
                 attributes["SIDE"] = "left" if (direction == 'increasing' and point.x < nearest_point.x) or (direction == 'decreasing' and point.x > nearest_point.x) else "right"
 
             address_direction = attributes["SIDE"]
-            street_addresses_by_side[nearest_segment.OBJECTID][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
+            street_addresses_by_side[nearest_segment.unique_id][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
             progress_dialog.setValue(i)
-
 
         street_parity = {}
         for id, sides in street_addresses_by_side.items():
@@ -173,15 +167,14 @@ class StreetParityDialog(QDialog):
 
         return street_parity
 
-
     def update_parities(self, streets, parity_result):
         """Update the parity values of the streets GeoDataFrame."""
         streets['PARITY_L'] = None
         streets['PARITY_R'] = None
 
         for id, parities in parity_result.items():
-            streets.loc[streets['OBJECTID'] == id, 'PARITY_L'] = parities['PARITY_L']
-            streets.loc[streets['OBJECTID'] == id, 'PARITY_R'] = parities['PARITY_R']
+            streets.loc[streets['unique_id'] == id, 'PARITY_L'] = parities['PARITY_L']
+            streets.loc[streets['unique_id'] == id, 'PARITY_R'] = parities['PARITY_R']
 
         return streets
 
@@ -219,7 +212,7 @@ class StreetParityDialog(QDialog):
         # Create rules
         symbol_red = QgsSymbol.defaultSymbol(layer.geometryType())
         symbol_red.setColor(QColor('red'))
-        #set thickness of the line
+        # Set thickness of the line
         symbol_red.setWidth(1)
         rule_red = QgsRuleBasedRenderer.Rule(symbol_red)
         rule_red.setLabel("Inconsistent Parity")
@@ -258,6 +251,10 @@ class StreetParityDialog(QDialog):
 
         address_gdf = gpd.GeoDataFrame.from_features([feature for feature in address_layer.getFeatures()])
         street_gdf = gpd.GeoDataFrame.from_features([feature for feature in street_layer.getFeatures()])
+
+        # Add a unique identifier
+        address_gdf['unique_id'] = np.arange(len(address_gdf))
+        street_gdf['unique_id'] = np.arange(len(street_gdf))
 
         # Adding empty parity columns to the GeoDataFrame
         street_gdf['PARITY_L'] = None
