@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>445</width>
-    <height>335</height>
+    <width>514</width>
+    <height>455</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,13 +17,262 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Street Parity</string>
   </property>
+  <widget class="QTabWidget" name="tabWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>491</width>
+     <height>401</height>
+    </rect>
+   </property>
+   <property name="currentIndex">
+    <number>0</number>
+   </property>
+   <widget class="QWidget" name="tab">
+    <attribute name="title">
+     <string>Tool</string>
+    </attribute>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>170</y>
+       <width>381</width>
+       <height>171</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Address Points</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>137</x>
+       <y>101</y>
+       <width>131</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Street Name Field</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>109</x>
+       <y>297</y>
+       <width>151</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Address Number Field</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="AddressLayerStreetFieldComboBox">
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>256</y>
+       <width>141</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="AddressLayerAddressNumberFieldComboBox">
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>296</y>
+       <width>141</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="AddressLayerComboBox">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>206</y>
+       <width>221</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="StreetLayerStreetFieldComboBox">
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>100</y>
+       <width>141</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="StreetLayerComboBox">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>50</y>
+       <width>221</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_4">
+     <property name="geometry">
+      <rect>
+       <x>85</x>
+       <y>209</y>
+       <width>101</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Address Layer</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_3">
+     <property name="geometry">
+      <rect>
+       <x>137</x>
+       <y>258</y>
+       <width>151</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Street Name Field</string>
+     </property>
+    </widget>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>13</y>
+       <width>381</width>
+       <height>131</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Road Centerlines</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>53</y>
+       <width>91</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Street Layer</string>
+     </property>
+    </widget>
+    <zorder>groupBox</zorder>
+    <zorder>groupBox_2</zorder>
+    <zorder>label_2</zorder>
+    <zorder>label_5</zorder>
+    <zorder>AddressLayerStreetFieldComboBox</zorder>
+    <zorder>AddressLayerAddressNumberFieldComboBox</zorder>
+    <zorder>AddressLayerComboBox</zorder>
+    <zorder>StreetLayerStreetFieldComboBox</zorder>
+    <zorder>StreetLayerComboBox</zorder>
+    <zorder>label_4</zorder>
+    <zorder>label_3</zorder>
+    <zorder>label</zorder>
+   </widget>
+   <widget class="QWidget" name="tab_2">
+    <attribute name="title">
+     <string>Help</string>
+    </attribute>
+    <widget class="QLabel" name="label_6">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>220</y>
+       <width>441</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>***Road Centerline***: This is a multiline featureclass that contains the road or street name eg. &quot;Elm&quot; for Elm Street.</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::MarkdownText</enum>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>280</y>
+       <width>441</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>***Address Points***: This is a point featureclass that contains the road or street name eg. &quot;Elm&quot; for Elm Street. An address number is also required for example 123 in 123 Main Street.</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::MarkdownText</enum>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>340</y>
+       <width>361</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>The tool will use the street name to join the 2 layers.</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::MarkdownText</enum>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_10">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>10</y>
+       <width>451</width>
+       <height>211</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>The Street Parity Analysis tool is designed to assist users in determining the house number parity (odd, even, or mixed) on each side of streets within a given geographical area. By selecting an address layer and a street layer from the loaded QGIS project, the tool analyzes the distribution of house numbers along the streets. It identifies the nearest street segment for each address, determines the orientation and direction of the street segments, and calculates the parity for the left and right sides of the streets. The results are then updated in a new layer with visual styling to differentiate between streets with uniform parity and those with mixed parity, providing a clear and comprehensive view of house number distribution patterns.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </widget>
+  </widget>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>280</y>
+     <x>169</x>
+     <y>419</y>
      <width>171</width>
      <height>32</height>
     </rect>
@@ -33,121 +282,6 @@
    </property>
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="StreetLayerComboBox">
-   <property name="geometry">
-    <rect>
-     <x>160</x>
-     <y>30</y>
-     <width>221</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="StreetLayerStreetFieldComboBox">
-   <property name="geometry">
-    <rect>
-     <x>240</x>
-     <y>80</y>
-     <width>141</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>70</x>
-     <y>30</y>
-     <width>91</width>
-     <height>17</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Street Layer</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_2">
-   <property name="geometry">
-    <rect>
-     <x>140</x>
-     <y>80</y>
-     <width>81</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Street Field</string>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="AddressLayerStreetFieldComboBox">
-   <property name="geometry">
-    <rect>
-     <x>240</x>
-     <y>190</y>
-     <width>141</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="AddressLayerComboBox">
-   <property name="geometry">
-    <rect>
-     <x>160</x>
-     <y>140</y>
-     <width>221</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>140</x>
-     <y>190</y>
-     <width>101</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Street Field</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_4">
-   <property name="geometry">
-    <rect>
-     <x>50</x>
-     <y>140</y>
-     <width>101</width>
-     <height>17</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Address Layer</string>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="AddressLayerAddressNumberFieldComboBox">
-   <property name="geometry">
-    <rect>
-     <x>240</x>
-     <y>230</y>
-     <width>141</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_5">
-   <property name="geometry">
-    <rect>
-     <x>70</x>
-     <y>230</y>
-     <width>161</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Address Number Field</string>
    </property>
   </widget>
  </widget>

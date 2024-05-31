@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>445</width>
-    <height>183</height>
+    <width>454</width>
+    <height>232</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,122 +19,161 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QComboBox" name="FlipperRastercomboBox">
+  <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>421</width>
-     <height>25</height>
+     <width>431</width>
+     <height>211</height>
     </rect>
    </property>
-  </widget>
-  <widget class="QPushButton" name="next_button">
-   <property name="geometry">
-    <rect>
-     <x>330</x>
-     <y>100</y>
-     <width>89</width>
-     <height>25</height>
-    </rect>
+   <property name="currentIndex">
+    <number>0</number>
    </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="prev_button">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>100</y>
-     <width>89</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="play_button">
-   <property name="geometry">
-    <rect>
-     <x>130</x>
-     <y>100</y>
-     <width>89</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="stop_button">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>100</y>
-     <width>89</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QLabel" name="band_label">
-   <property name="geometry">
-    <rect>
-     <x>170</x>
-     <y>40</y>
-     <width>67</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Band: 1</string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="min_spinbox">
-   <property name="geometry">
-    <rect>
-     <x>80</x>
-     <y>60</y>
-     <width>101</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="prefix">
-    <string>Min: </string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="max_spinbox">
-   <property name="geometry">
-    <rect>
-     <x>290</x>
-     <y>60</y>
-     <width>101</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="prefix">
-    <string>Max: </string>
-   </property>
-   <property name="value">
-    <double>1.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QSlider" name="band_slider">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>140</y>
-     <width>371</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
+   <widget class="QWidget" name="Tool">
+    <attribute name="title">
+     <string>Tool</string>
+    </attribute>
+    <widget class="QSlider" name="band_slider">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>140</y>
+       <width>371</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="FlipperRastercomboBox">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>10</y>
+       <width>421</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="next_button">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>100</y>
+       <width>89</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="max_spinbox">
+     <property name="geometry">
+      <rect>
+       <x>280</x>
+       <y>60</y>
+       <width>101</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="prefix">
+      <string>Max: </string>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="play_button">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>100</y>
+       <width>89</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="band_label">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>40</y>
+       <width>67</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Band: 1</string>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="min_spinbox">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>60</y>
+       <width>101</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="prefix">
+      <string>Min: </string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="prev_button">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>100</y>
+       <width>89</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="stop_button">
+     <property name="geometry">
+      <rect>
+       <x>220</x>
+       <y>100</y>
+       <width>89</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="Help">
+    <attribute name="title">
+     <string>Help</string>
+    </attribute>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>411</width>
+       <height>111</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>The FlipperDialog tool is a QGIS plugin that enables users to cycle through and visualize different bands of a 3D raster layer. Users can manually navigate bands, automate cycling with play/stop controls, and adjust contrast settings for optimal viewing. This tool simplifies the analysis of multi-band raster datasets directly within QGIS.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </widget>
   </widget>
  </widget>
  <resources/>
