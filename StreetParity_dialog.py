@@ -260,7 +260,7 @@ class StreetParityDialog(QDialog):
         street_gdf['PARITY_L'] = None
         street_gdf['PARITY_R'] = None
 
-        parity_result = self.parity(address_gdf, street_gdf)
+        parity_result = self.parity(address_gdf, street_gdf, street_street_field, address_street_field, address_number_field)
         updated_streets = self.update_parities(street_gdf, parity_result)
 
         self.create_new_layer(updated_streets, street_layer)
