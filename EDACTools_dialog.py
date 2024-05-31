@@ -6,6 +6,7 @@ from .StreetParity_dialog import StreetParityDialog
 from .Flipper_dialog import FlipperDialog
 
 import os
+
 class EDACToolsDialog(QDialog):
     """ 
     This class creates the main dialog for the EDACTools plugin
@@ -20,6 +21,9 @@ class EDACToolsDialog(QDialog):
             self.ui = Ui_EDACToolsDialog()
             self.ui.setupUi(self)
             self.plugin_dir = os.path.dirname(__file__)
+            self.fishbone_dialog = None  # Keep a reference to the Fishbone dialog instance
+            self.street_parity_dialog = None  # Keep a reference to the Street Parity dialog instance
+            self.flipper_dialog = None  # Keep a reference to the Flipper dialog instance
             self.init_tree()
         else:
             self.reject()
@@ -66,20 +70,18 @@ class EDACToolsDialog(QDialog):
         flipper_icon_path = os.path.join(self.plugin_dir, "icons", "flipper.png")
         flipper_item.setIcon(0, QIcon(flipper_icon_path))
 
-
-
-
-        # self.ui.treeWidget.expandAll()
         self.ui.treeWidget.itemDoubleClicked.connect(self.open_tool)
 
     def open_tool(self, item, column):
         if item.text(0) == "Fishbone":
-            dialog = FishboneDialog()
-            dialog.exec_()
+            if not self.fishbone_dialog:
+                self.fishbone_dialog = FishboneDialog()
+            self.fishbone_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "Street Parity":
-            dialog = StreetParityDialog()
-            dialog.exec_()
+            if not self.street_parity_dialog:
+                self.street_parity_dialog = StreetParityDialog()
+            self.street_parity_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "Flipper":
-            dialog = FlipperDialog()
-            dialog.exec_()
-        
+            if not self.flipper_dialog:
+                self.flipper_dialog = FlipperDialog()
+            self.flipper_dialog.show()  # Use show() to make the dialog modeless

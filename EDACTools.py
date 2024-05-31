@@ -6,13 +6,13 @@ from qgis.gui import QgsMessageBar
 import os
 from .EDACTools_dialog import EDACToolsDialog
 
-
 class EDACTools:
     def __init__(self, iface):
         self.iface = iface  # Save reference to the QGIS interface
         self.plugin_dir = os.path.dirname(__file__)  # Set the path to the plugin directory
         self.action = None  # Initialize the action variable
         self.menu_added = False  # Initialize a flag to track if the menu is added
+        self.dialog = None  # Keep a reference to the dialog instance
         self.initGui()  # Call the initGui method (below) to create the menu item and toolbar button
 
     def initGui(self):
@@ -35,8 +35,9 @@ class EDACTools:
         """
         Run method that creates and shows the dialog
         """
-        dialog = EDACToolsDialog()
-        dialog.exec_()
+        if not self.dialog:
+            self.dialog = EDACToolsDialog()
+        self.dialog.show()  # Use show() to make the dialog modeless
 
     def unload(self):
         """
@@ -47,3 +48,6 @@ class EDACTools:
             self.iface.removeToolBarIcon(self.action)
             self.action = None  # Reset the action variable
             self.menu_added = False  # Reset the menu_added flag
+        if self.dialog:
+            self.dialog.close()  # Close the dialog if it's open
+            self.dialog = None  # Reset the dialog reference
