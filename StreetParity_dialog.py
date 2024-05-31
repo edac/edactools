@@ -121,7 +121,7 @@ class StreetParityDialog(QDialog):
         else:
             return 'both'
 
-    def parity(self, addresses, streets):
+    def parity(self, addresses, streets, street_street_field='STR_NAME', address_street_field='STR_NAME', address_number_field='ADD_NUMBER'):
         """Determine the parity of the addresses on the left and right sides of the streets."""
         if isinstance(addresses['geometry'].iloc[0], MultiPoint):
             addresses['geometry'] = addresses['geometry'].apply(lambda x: Point(x[0]))
@@ -137,8 +137,8 @@ class StreetParityDialog(QDialog):
             if progress_dialog.wasCanceled():
                 break
 
-            street_name = address.STR_NAME
-            street_segments = streets[streets['STR_NAME'] == street_name]
+            street_name = getattr(address, address_street_field)
+            street_segments = streets[streets[street_street_field] == street_name]
             point = address.geometry
             nearest_segment = self.nearest_segment_to_point(point, street_segments)
 
@@ -152,15 +152,16 @@ class StreetParityDialog(QDialog):
             inner_line_coords = self.nearest_inner_line(nearest_point, nearest_segment.geometry)
             orientation, direction = self.get_orientation_and_direction(inner_line_coords)
 
-            attributes = {"ADD_NUMBER": address.ADD_NUMBER, "STR_NAME": address.STR_NAME}
+            attributes = {address_number_field: getattr(address, address_number_field), address_street_field: getattr(address, address_street_field)}
             if orientation == 'x':
                 attributes["SIDE"] = "left" if (direction == 'increasing' and point.y > nearest_point.y) or (direction == 'decreasing' and point.y < nearest_point.y) else "right"
             else:
                 attributes["SIDE"] = "left" if (direction == 'increasing' and point.x < nearest_point.x) or (direction == 'decreasing' and point.x > nearest_point.x) else "right"
 
             address_direction = attributes["SIDE"]
-            street_addresses_by_side[nearest_segment.OBJECTID][f"{address_direction}_addresses"].append(address.ADD_NUMBER)
+            street_addresses_by_side[nearest_segment.OBJECTID][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
             progress_dialog.setValue(i)
+
 
         street_parity = {}
         for id, sides in street_addresses_by_side.items():
