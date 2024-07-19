@@ -1,18 +1,18 @@
-from PyQt5.QtWidgets import QDialog, QMessageBox, QComboBox, QPushButton, QVBoxLayout, QLabel, QDoubleSpinBox
-from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QDialog, QMessageBox
 from .Flipper_dialog_base import Ui_FlipperDialog
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsSingleBandGrayRenderer, QgsContrastEnhancement
+from qgis.core import QgsProject, QgsMapLayer, QgsSingleBandGrayRenderer, QgsContrastEnhancement
 from PyQt5.QtGui import QIcon
 import os
+from qgis.utils import iface
+
 class FlipperDialog(QDialog):
 
     def __init__(self):
+        self.playing = False
         super().__init__()
         self.ui = Ui_FlipperDialog()
         self.ui.setupUi(self)
         self.plugin_dir = os.path.dirname(__file__)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.next_band)
         #add icons to the buttons
         next_button_icon = os.path.join(self.plugin_dir, "icons", "next_button.png")
         self.ui.next_button.setIcon(QIcon(next_button_icon))
@@ -35,13 +35,23 @@ class FlipperDialog(QDialog):
         layers = QgsProject.instance().layerTreeRoot().children()
         self.raster_layer = None
         self.current_band = 1
+        self.canvas = iface.mapCanvas()
+        self.connect_signals()
 
         if layers:
             for layer in layers:
                 if layer.layer().type() == QgsMapLayer.RasterLayer:
                     self.ui.FlipperRastercomboBox.addItem(layer.name())
-        
         self.ui.FlipperRastercomboBox.currentIndexChanged.connect(self.layer_changed)
+
+    def connect_signals(self): 
+        # Connect to map canvas signal
+        self.canvas.renderComplete.connect(self.on_render_complete)
+
+    def on_render_complete(self):
+        if self.playing:
+            self.next_band()
+        
     def slider_changed(self):
         self.current_band = self.ui.band_slider.value()
         self.update_band()
@@ -75,10 +85,13 @@ class FlipperDialog(QDialog):
             self.update_band()
 
     def play(self):
-        self.timer.start(100)  # Adjust the interval as needed
+        self.playing = True
+        self.next_band()
+     
 
     def stop(self):
-        self.timer.stop()
+        self.playing = False
+       
 
     def update_band(self):
         if self.raster_layer:
