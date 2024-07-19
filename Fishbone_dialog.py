@@ -90,7 +90,7 @@ class FishboneDialog(QDialog):
         return_json={
         "type": "FeatureCollection",
         "name": "fishbone",
-        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::26913" } },
+        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::4326" } },
         "features": []
         }
         address_count = len(addresses)
@@ -153,15 +153,27 @@ class FishboneDialog(QDialog):
         street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
         address_layer_df = gpd.GeoDataFrame.from_features([feature for feature in address_layer.getFeatures()])
         street_layer_df = gpd.GeoDataFrame.from_features([feature for feature in street_layer.getFeatures()])
+
+        # Ensure the CRS is set for both dataframes
+        if address_layer_df.crs is None:
+            address_layer_df.set_crs(address_layer.crs().authid(), inplace=True)
+
+        if street_layer_df.crs is None:
+            street_layer_df.set_crs(street_layer.crs().authid(), inplace=True)
+
+        # Convert all geometries to the same CRS UTM 13N
+        address_layer_df = address_layer_df.to_crs("EPSG:4326")
+        street_layer_df = street_layer_df.to_crs("EPSG:4326")
+
+
         address_street_field = self.ui.AddressStreetComboBox.currentText()
         street_street_field = self.ui.StreetStreetComboBox.currentText()
         fb = self.fishbone(address_layer_df, street_layer_df, address_street_field, street_street_field)
 
         json_string = json.dumps(fb)
-        print(json_string)
+      
         fishbone_layer = QgsVectorLayer(json_string, "fishbone", "ogr")
         QgsProject.instance().addMapLayer(fishbone_layer)
 
-        print(f"Selected Street Layer: {street_layer_name}, Selected Address Layer: {address_layer_name}")
         self.accept()
 
