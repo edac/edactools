@@ -50,6 +50,7 @@ class Ui_FlipperDialog(object):
         self.min_spinbox = QtWidgets.QDoubleSpinBox(self.Tool)
         self.min_spinbox.setGeometry(QtCore.QRect(70, 60, 101, 26))
         self.min_spinbox.setObjectName("min_spinbox")
+        self.min_spinbox.setMinimum(-99.99)
         self.prev_button = QtWidgets.QPushButton(self.Tool)
         self.prev_button.setGeometry(QtCore.QRect(20, 100, 89, 25))
         self.prev_button.setText("")
