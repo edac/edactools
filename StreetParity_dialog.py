@@ -26,22 +26,26 @@ class StreetParityDialog(QDialog):
         for field in layer.fields():
             combo_box.addItem(field.name())
 
-    def __init__(self):
-        super().__init__()
-        self.ui = Ui_StreetParityDialog()
-        self.ui.setupUi(self)
-
-        layers = QgsProject.instance().layerTreeRoot().children()
-
+    def load_layers(self):
+        #clear the combo boxes
+        self.ui.AddressLayerComboBox.clear()
+        self.ui.StreetLayerComboBox.clear()
         self.ui.AddressLayerComboBox.addItem("Select Address Layer")
         self.ui.StreetLayerComboBox.addItem("Select Street Layer")
-
+        layers = QgsProject.instance().layerTreeRoot().children()
         if layers:
             for layer in layers:
                 self.ui.AddressLayerComboBox.addItem(layer.name())
                 self.ui.StreetLayerComboBox.addItem(layer.name())
         else:
             QMessageBox.warning(self, "No Layers", "No layers are currently loaded in the project.")
+
+    def __init__(self):
+        super().__init__()
+        self.ui = Ui_StreetParityDialog()
+        self.ui.setupUi(self)
+
+        self.load_layers()
             
         self.ui.buttonBox.accepted.connect(self.run)
         self.ui.buttonBox.rejected.connect(self.reject)
@@ -50,6 +54,8 @@ class StreetParityDialog(QDialog):
         # when the address layer is changed, update the address field combo box
         self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerStreetFieldComboBox))
         self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerAddressNumberFieldComboBox))
+
+    
 
     def nearest_segment_to_point(self, point, segments):
         """Find the nearest segment to a point from a GeoDataFrame of segments."""
@@ -116,6 +122,52 @@ class StreetParityDialog(QDialog):
         else:
             return 'both'
 
+
+    def calculate_angle_from_north(self, line):
+        """Calculate the angle from the north of a line."""
+        if isinstance(line, LineString):
+            line = [line.coords[0], line.coords[1]]
+        elif isinstance(line, MultiLineString):
+            line = [line.geoms[0].coords[0], line.geoms[0].coords[1]]
+        else:
+            raise ValueError("The line should be either LineString or MultiLineString.")
+
+        x1, y1 = line[0]
+        x2, y2 = line[1]
+
+        angle = np.arctan2(x2 - x1, y2 - y1) * 180 / np.pi
+        return angle
+
+    def determine_position(self, fish_bone_line, last_two_points):
+        # Extract coordinates from lines as numpy arrays
+        p1 = np.array(fish_bone_line.coords[0])
+        p2 = np.array(fish_bone_line.coords[1])
+        p3 = np.array(last_two_points.coords[0])
+        p4 = np.array(last_two_points.coords[1])
+
+        # Convert to 3D vectors by adding a zero z-component
+        p1_3d = np.array([p1[0], p1[1], 0])
+        p2_3d = np.array([p2[0], p2[1], 0])
+        p3_3d = np.array([p3[0], p3[1], 0])
+        p4_3d = np.array([p4[0], p4[1], 0])
+
+        # Direction vectors
+        v1 = p2_3d - p1_3d
+        v2 = p4_3d - p3_3d
+
+        # Cross product of v1 and v2
+        cross_product = np.cross(v1, v2)
+
+        # Check the z-component of the cross product
+        z_component = cross_product[2]
+
+        if z_component > 0:
+            return "left"
+        elif z_component < 0:
+            return "right"
+        else:
+            return "collinear"
+
     def parity(self, addresses, streets, street_street_field='STR_NAME', address_street_field='STR_NAME', address_number_field='ADD_NUMBER'):
         """Determine the parity of the addresses on the left and right sides of the streets."""
         if isinstance(addresses['geometry'].iloc[0], MultiPoint):
@@ -136,7 +188,8 @@ class StreetParityDialog(QDialog):
             street_segments = streets[streets[street_street_field] == street_name]
             point = address.geometry
             nearest_segment = self.nearest_segment_to_point(point, street_segments)
-
+            angle = self.calculate_angle_from_north(nearest_segment.geometry)
+         
             if nearest_segment is None:
                 continue
 
@@ -145,17 +198,38 @@ class StreetParityDialog(QDialog):
 
             nearest_point = nearest_points(nearest_segment.geometry, point)[0]
             inner_line_coords = self.nearest_inner_line(nearest_point, nearest_segment.geometry)
-            orientation, direction = self.get_orientation_and_direction(inner_line_coords)
+            #last point of the inner line
+            last_point =Point(nearest_segment.geometry.geoms[-1].coords[-1])
+            #last two points of the inner line as a line
+            last_two_points = LineString(nearest_segment.geometry.geoms[-1].coords[-2:])
 
-            attributes = {address_number_field: getattr(address, address_number_field), address_street_field: getattr(address, address_street_field)}
-            if orientation == 'x':
-                attributes["SIDE"] = "left" if (direction == 'increasing' and point.y > nearest_point.y) or (direction == 'decreasing' and point.y < nearest_point.y) else "right"
+
+
+            if nearest_point==last_point:
+                
+
+                fish_bone_line = LineString([point,nearest_point])
+
+                position = self.determine_position(fish_bone_line, last_two_points)
+                if position == "left":
+                    street_addresses_by_side[nearest_segment.unique_id]["left_addresses"].append(getattr(address, address_number_field))
+                elif position == "right":
+                    street_addresses_by_side[nearest_segment.unique_id]["right_addresses"].append(getattr(address, address_number_field))
+                progress_dialog.setValue(i)
             else:
-                attributes["SIDE"] = "left" if (direction == 'increasing' and point.x < nearest_point.x) or (direction == 'decreasing' and point.x > nearest_point.x) else "right"
 
-            address_direction = attributes["SIDE"]
-            street_addresses_by_side[nearest_segment.unique_id][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
-            progress_dialog.setValue(i)
+
+                orientation, direction = self.get_orientation_and_direction(inner_line_coords)
+
+                attributes = {address_number_field: getattr(address, address_number_field), address_street_field: getattr(address, address_street_field)}
+                if orientation == 'x':
+                    attributes["SIDE"] = "left" if (direction == 'increasing' and point.y > nearest_point.y) or (direction == 'decreasing' and point.y < nearest_point.y) else "right"
+                else:
+                    attributes["SIDE"] = "left" if (direction == 'increasing' and point.x < nearest_point.x) or (direction == 'decreasing' and point.x > nearest_point.x) else "right"
+
+                address_direction = attributes["SIDE"]
+                street_addresses_by_side[nearest_segment.unique_id][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
+                progress_dialog.setValue(i)
 
         street_parity = {}
         for id, sides in street_addresses_by_side.items():
