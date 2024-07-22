@@ -4,6 +4,7 @@ from .EDACTools_dialog_base import Ui_EDACToolsDialog
 from .Fishbone_dialog import FishboneDialog
 from .StreetParity_dialog import StreetParityDialog
 from .Flipper_dialog import FlipperDialog
+from .Indices_dialog import NDVIDialog, NDWIDialog, EVI2Dialog, EVIDialog
 
 import os
 
@@ -11,12 +12,12 @@ class EDACToolsDialog(QDialog):
     """ 
     This class creates the main dialog for the EDACTools plugin
     """
-    def __init__(self):
+    def __init__(self, parent=None):
         """
         Initialize the dialog
         """
         
-        super().__init__()
+        super().__init__(parent)
         if self.CheckDependencies():
             self.ui = Ui_EDACToolsDialog()
             self.ui.setupUi(self)
@@ -24,6 +25,10 @@ class EDACToolsDialog(QDialog):
             self.fishbone_dialog = None  # Keep a reference to the Fishbone dialog instance
             self.street_parity_dialog = None  # Keep a reference to the Street Parity dialog instance
             self.flipper_dialog = None  # Keep a reference to the Flipper dialog instance
+            self.ndvi_dialog = None
+            self.ndwi_dialog = None
+            self.evi_dialog = None
+            self.evi2_dialog = None
             self.init_tree()
         else:
             self.reject()
@@ -70,6 +75,36 @@ class EDACToolsDialog(QDialog):
         flipper_icon_path = os.path.join(self.plugin_dir, "icons", "flipper.png")
         flipper_item.setIcon(0, QIcon(flipper_icon_path))
 
+        #indices sub menu
+        indices_item = QTreeWidgetItem(raster_tools_item)
+        indices_item.setText(0, "Quick Index")
+        #add item under indices
+        ndvi_item = QTreeWidgetItem(indices_item)
+        ndvi_item.setText(0, "NDVI")
+        #add icon to the ndvi item
+        ndvi_icon_path = os.path.join(self.plugin_dir, "icons", "index.png")
+        ndvi_item.setIcon(0, QIcon(ndvi_icon_path))
+
+        ndwi_item = QTreeWidgetItem(indices_item)
+        ndwi_item.setText(0, "NDWI")
+        ndwi_icon_path = os.path.join(self.plugin_dir, "icons", "index.png")
+        ndwi_item.setIcon(0, QIcon(ndwi_icon_path))
+
+        evi_item = QTreeWidgetItem(indices_item)
+        evi_item.setText(0, "EVI")
+        evi_icon_path = os.path.join(self.plugin_dir, "icons", "index.png")
+        evi_item.setIcon(0, QIcon(evi_icon_path))
+
+        evi2_item = QTreeWidgetItem(indices_item)
+        evi2_item.setText(0, "EVI2")
+        evi2_icon_path = os.path.join(self.plugin_dir, "icons", "index.png")
+        evi2_item.setIcon(0, QIcon(evi2_icon_path))
+
+
+
+
+
+
         self.ui.treeWidget.itemDoubleClicked.connect(self.open_tool)
 
     def open_tool(self, item, column):
@@ -85,3 +120,21 @@ class EDACToolsDialog(QDialog):
             if not self.flipper_dialog:
                 self.flipper_dialog = FlipperDialog()
             self.flipper_dialog.show()  # Use show() to make the dialog modeless
+        elif item.text(0) == "NDVI":
+            if not self.ndvi_dialog:
+                self.ndvi_dialog = NDVIDialog()
+            self.ndvi_dialog.show()
+        elif item.text(0) == "NDWI":
+            if not self.ndwi_dialog:
+                self.ndwi_dialog = NDWIDialog()
+            self.ndwi_dialog.show()
+        elif item.text(0) == "EVI":
+            if not self.evi_dialog:
+                self.evi_dialog = EVIDialog()
+            self.evi_dialog.show()
+        elif item.text(0) == "EVI2":
+            if not self.evi2_dialog:
+                self.evi2_dialog = EVI2Dialog()
+            self.evi2_dialog.show()
+        
+            
