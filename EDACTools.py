@@ -36,7 +36,7 @@ class EDACTools:
         Run method that creates and shows the dialog
         """
         if not self.dialog:
-            self.dialog = EDACToolsDialog()
+            self.dialog = EDACToolsDialog(self.iface.mainWindow())
         self.dialog.show()  # Use show() to make the dialog modeless
 
     def unload(self):

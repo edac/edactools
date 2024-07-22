@@ -339,5 +339,5 @@ class StreetParityDialog(QDialog):
 
         self.create_new_layer(updated_streets, street_layer)
 
-        print(f"Selected Street Layer: {street_layer_name}, Selected Address Layer: {address_layer_name}")
+        
         self.accept()
