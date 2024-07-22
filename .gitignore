@@ -1,2 +1,3 @@
 __pycache__
 test_data/3d_raster.tif.aux.xml
+test_data/bgrnir_for_index_testing.tif.aux.xml
