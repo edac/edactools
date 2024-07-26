@@ -20,11 +20,12 @@ class NDVIDialog(QDialog):
 
 
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_NdviDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal)
         self.ui.RastercomboBox.addItem("Select Raster")
         layers = QgsProject.instance().layerTreeRoot().children()
         if layers:
@@ -136,11 +137,12 @@ class NDVIDialog(QDialog):
 
 
 class NDWIDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_NdwiDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal)
         self.ui.RastercomboBox.addItem("Select Raster")
         layers = QgsProject.instance().layerTreeRoot().children()
         if layers:
@@ -254,11 +256,12 @@ class NDWIDialog(QDialog):
   
 
 class EVIDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_EviDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal)
         self.ui.RastercomboBox.addItem("Select Raster")
         layers = QgsProject.instance().layerTreeRoot().children()
         if layers:
@@ -408,11 +411,12 @@ class EVIDialog(QDialog):
 
 
 class EVI2Dialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_Evi2Dialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal) 
         layers = QgsProject.instance().layerTreeRoot().children()
         self.ui.RastercomboBox.addItem("Select Raster")
         if layers:

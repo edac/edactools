@@ -87,11 +87,12 @@ class StreetParityDialog(QDialog):
         self.load_fields(address_layer, self.ui.AddressLayerStreetFieldComboBox)
         self.load_fields(address_layer, self.ui.AddressLayerAddressNumberFieldComboBox)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_StreetParityDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal) 
         self.refreshing = False
         self.load_layers()
         

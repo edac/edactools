@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QMessageBox
 from PyQt5.QtGui import QIcon
 from .EDACTools_dialog_base import Ui_EDACToolsDialog
@@ -16,8 +17,8 @@ class EDACToolsDialog(QDialog):
         """
         Initialize the dialog
         """
-        
         super().__init__(parent)
+        
         if self.CheckDependencies():
             self.ui = Ui_EDACToolsDialog()
             self.ui.setupUi(self)
@@ -110,31 +111,36 @@ class EDACToolsDialog(QDialog):
     def open_tool(self, item, column):
         if item.text(0) == "Fishbone":
             if not self.fishbone_dialog:
-                self.fishbone_dialog = FishboneDialog()
+                self.fishbone_dialog = FishboneDialog(self)
+                self.fishbone_dialog.setWindowFlags(self.fishbone_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.fishbone_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "Street Parity":
             if not self.street_parity_dialog:
-                self.street_parity_dialog = StreetParityDialog()
+                self.street_parity_dialog = StreetParityDialog(self)
+                self.street_parity_dialog.setWindowFlags(self.street_parity_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.street_parity_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "Flipper":
             if not self.flipper_dialog:
-                self.flipper_dialog = FlipperDialog()
+                self.flipper_dialog = FlipperDialog(self)
+                self.flipper_dialog.setWindowFlags(self.flipper_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.flipper_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "NDVI":
             if not self.ndvi_dialog:
-                self.ndvi_dialog = NDVIDialog()
+                self.ndvi_dialog = NDVIDialog(self)
+                self.ndvi_dialog.setWindowFlags(self.ndvi_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.ndvi_dialog.show()
         elif item.text(0) == "NDWI":
             if not self.ndwi_dialog:
-                self.ndwi_dialog = NDWIDialog()
+                self.ndwi_dialog = NDWIDialog(self)
+                self.ndwi_dialog.setWindowFlags(self.ndwi_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.ndwi_dialog.show()
         elif item.text(0) == "EVI":
             if not self.evi_dialog:
-                self.evi_dialog = EVIDialog()
+                self.evi_dialog = EVIDialog(self)
+                self.evi_dialog.setWindowFlags(self.evi_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.evi_dialog.show()
         elif item.text(0) == "EVI2":
             if not self.evi2_dialog:
-                self.evi2_dialog = EVI2Dialog()
+                self.evi2_dialog = EVI2Dialog(self)
+                self.evi2_dialog.setWindowFlags(self.evi2_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.evi2_dialog.show()
-        
-            

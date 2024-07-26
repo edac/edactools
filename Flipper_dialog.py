@@ -7,11 +7,12 @@ from qgis.utils import iface
 
 class FlipperDialog(QDialog):
 
-    def __init__(self):
+    def __init__(self,parent=None):
         self.playing = False
-        super().__init__()
+        super().__init__(parent)
         self.ui = Ui_FlipperDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal) 
         self.plugin_dir = os.path.dirname(__file__)
         #add icons to the buttons
         refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")

@@ -18,10 +18,11 @@ class FishboneDialog(QDialog):
         for field in layer.fields():
             combo_box.addItem(field.name())
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super().__init__(parent)
         self.ui = Ui_FishboneDialog()
         self.ui.setupUi(self)
+        self.setWindowModality(Qt.NonModal) 
         self.plugin_dir = os.path.dirname(__file__)
         layers = QgsProject.instance().layerTreeRoot().children()
         refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
