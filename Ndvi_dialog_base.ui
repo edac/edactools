@@ -228,21 +228,37 @@
       <bool>true</bool>
      </property>
     </widget>
-    <widget class="QLabel" name="label_5">
+    <widget class="QScrollArea" name="scrollArea">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>10</y>
-       <width>411</width>
-       <height>131</height>
+       <x>0</x>
+       <y>0</y>
+       <width>421</width>
+       <height>251</height>
       </rect>
      </property>
-     <property name="text">
-      <string/>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
      </property>
-     <property name="wordWrap">
+     <property name="cursor" stdset="0">
+      <cursorShape>ArrowCursor</cursorShape>
+     </property>
+     <property name="widgetResizable">
       <bool>true</bool>
      </property>
+     <widget class="QWidget" name="scrollAreaWidgetContents">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>419</width>
+        <height>249</height>
+       </rect>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>

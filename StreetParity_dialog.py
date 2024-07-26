@@ -18,6 +18,8 @@ import geopandas as gpd
 from shapely.geometry import Point, LineString, MultiLineString, MultiPoint
 from shapely.ops import nearest_points
 import numpy as np
+import os
+from PyQt5.QtGui import QIcon
 
 class StreetParityDialog(QDialog):
 
@@ -26,7 +28,34 @@ class StreetParityDialog(QDialog):
         for field in layer.fields():
             combo_box.addItem(field.name())
 
+    def refresh_address(self):
+        self.refreshing = True
+        self.ui.AddressLayerComboBox.clear()
+        self.ui.AddressLayerComboBox.addItem("Select Address Layer")
+        layers = QgsProject.instance().layerTreeRoot().children()
+        if layers:
+            for layer in layers:
+                if layer.layer().type() == QgsVectorLayer.VectorLayer:
+                    self.ui.AddressLayerComboBox.addItem(layer.name())
+                
+        self.refreshing = False
+
+    def refresh_street(self):
+        self.refreshing = True
+        self.ui.StreetLayerComboBox.clear()
+        self.ui.StreetLayerComboBox.addItem("Select Street Layer")
+        layers = QgsProject.instance().layerTreeRoot().children()
+        if layers:
+            for layer in layers:
+                if layer.layer().type() == QgsVectorLayer.VectorLayer:
+                    self.ui.StreetLayerComboBox.addItem(layer.name())
+        self.refreshing = False
+
     def load_layers(self):
+        
+        if self.refreshing:
+            return
+        print("load layers running")
         #clear the combo boxes
         self.ui.AddressLayerComboBox.clear()
         self.ui.StreetLayerComboBox.clear()
@@ -39,22 +68,47 @@ class StreetParityDialog(QDialog):
                 self.ui.StreetLayerComboBox.addItem(layer.name())
         else:
             QMessageBox.warning(self, "No Layers", "No layers are currently loaded in the project.")
+        self.refreshing = False
+    def update_street_fields(self):
+        if self.refreshing:
+            return
+        street_layer_name = self.ui.StreetLayerComboBox.currentText()
+        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
+        self.ui.StreetLayerStreetFieldComboBox.clear()
+        self.load_fields(street_layer, self.ui.StreetLayerStreetFieldComboBox)
+
+    def update_address_fields(self):
+        if self.refreshing:
+            return
+        address_layer_name = self.ui.AddressLayerComboBox.currentText()
+        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
+        self.ui.AddressLayerStreetFieldComboBox.clear()
+        self.ui.AddressLayerAddressNumberFieldComboBox.clear()
+        self.load_fields(address_layer, self.ui.AddressLayerStreetFieldComboBox)
+        self.load_fields(address_layer, self.ui.AddressLayerAddressNumberFieldComboBox)
 
     def __init__(self):
         super().__init__()
+        self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_StreetParityDialog()
         self.ui.setupUi(self)
-
+        self.refreshing = False
         self.load_layers()
-            
+        
+        refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
+        self.ui.AddressRefreshButton.setIcon(QIcon(refresh_button_icon))
+        self.ui.StreetRefreshButton.setIcon(QIcon(refresh_button_icon))
+        #connect the refresh button to the refresh method
+        self.ui.AddressRefreshButton.clicked.connect(self.refresh_address)
+        self.ui.StreetRefreshButton.clicked.connect(self.refresh_street)
+
+
         self.ui.buttonBox.accepted.connect(self.run)
         self.ui.buttonBox.rejected.connect(self.reject)
         # when the street layer is changed, update the street field combo box
-        self.ui.StreetLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.StreetLayerComboBox.currentText())[0], self.ui.StreetLayerStreetFieldComboBox))
+        self.ui.StreetLayerComboBox.currentIndexChanged.connect(self.update_street_fields)
         # when the address layer is changed, update the address field combo box
-        self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerStreetFieldComboBox))
-        self.ui.AddressLayerComboBox.currentIndexChanged.connect(lambda: self.load_fields(QgsProject.instance().mapLayersByName(self.ui.AddressLayerComboBox.currentText())[0], self.ui.AddressLayerAddressNumberFieldComboBox))
-
+        self.ui.AddressLayerComboBox.currentIndexChanged.connect(self.update_address_fields)
     
 
     def nearest_segment_to_point(self, point, segments):

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>454</width>
-    <height>232</height>
+    <width>459</width>
+    <height>249</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,7 +24,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>431</width>
+     <width>441</width>
      <height>211</height>
     </rect>
    </property>
@@ -53,7 +53,7 @@
       <rect>
        <x>2</x>
        <y>10</y>
-       <width>421</width>
+       <width>391</width>
        <height>25</height>
       </rect>
      </property>
@@ -152,6 +152,19 @@
       <string/>
      </property>
     </widget>
+    <widget class="QToolButton" name="refreshButton">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>10</y>
+       <width>26</width>
+       <height>24</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
     <zorder>band_slider</zorder>
     <zorder>next_button</zorder>
     <zorder>max_spinbox</zorder>
@@ -161,6 +174,7 @@
     <zorder>prev_button</zorder>
     <zorder>stop_button</zorder>
     <zorder>FlipperRastercomboBox</zorder>
+    <zorder>refreshButton</zorder>
    </widget>
    <widget class="QWidget" name="Help">
     <attribute name="title">

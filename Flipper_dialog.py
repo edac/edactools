@@ -14,6 +14,10 @@ class FlipperDialog(QDialog):
         self.ui.setupUi(self)
         self.plugin_dir = os.path.dirname(__file__)
         #add icons to the buttons
+        refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
+        self.ui.refreshButton.setIcon(QIcon(refresh_button_icon))
+        #connect the refresh button to the refresh method
+        self.ui.refreshButton.clicked.connect(self.refresh)
         next_button_icon = os.path.join(self.plugin_dir, "icons", "next_button.png")
         self.ui.next_button.setIcon(QIcon(next_button_icon))
         prev_button_icon = os.path.join(self.plugin_dir, "icons", "prev_button.png")
@@ -43,7 +47,16 @@ class FlipperDialog(QDialog):
                 if layer.layer().type() == QgsMapLayer.RasterLayer:
                     self.ui.FlipperRastercomboBox.addItem(layer.name())
         self.ui.FlipperRastercomboBox.currentIndexChanged.connect(self.layer_changed)
-
+    def refresh(self):
+        print('refresh')
+        self.ui.FlipperRastercomboBox.clear()
+        self.ui.FlipperRastercomboBox.addItem("Select 3D Raster")
+        layers = QgsProject.instance().layerTreeRoot().children()
+        if layers:
+            for layer in layers:
+                if layer.layer().type() == QgsMapLayer.RasterLayer:
+                    self.ui.FlipperRastercomboBox.addItem(layer.name())
+      
     def connect_signals(self): 
         # Connect to map canvas signal
         self.canvas.renderComplete.connect(self.on_render_complete)

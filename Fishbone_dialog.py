@@ -1,12 +1,15 @@
 from PyQt5.QtWidgets import QDialog, QMessageBox, QProgressDialog
 from .Fishbone_dialog_base import Ui_FishboneDialog
-from qgis.core import QgsProject, QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY
+from qgis.core import QgsProject, QgsVectorLayer
 from PyQt5.QtCore import Qt
 import geopandas as gpd
 from shapely.geometry import Point, LineString, MultiPoint
 import json
 from shapely.ops import nearest_points
 import json
+import os
+from PyQt5.QtGui import QIcon
+
 
 class FishboneDialog(QDialog):
 
@@ -19,16 +22,26 @@ class FishboneDialog(QDialog):
         super().__init__()
         self.ui = Ui_FishboneDialog()
         self.ui.setupUi(self)
-
+        self.plugin_dir = os.path.dirname(__file__)
         layers = QgsProject.instance().layerTreeRoot().children()
+        refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
+        self.ui.StreetRefreshButton.setIcon(QIcon(refresh_button_icon))
+        refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
+        self.ui.AddressRefreshButton.setIcon(QIcon(refresh_button_icon))
+        self.refreshing = False
+        #connect the refresh button to the refresh method
+        self.ui.StreetRefreshButton.clicked.connect(self.refreshstreet)
+        self.ui.AddressRefreshButton.clicked.connect(self.refreshaddress)
 
         self.ui.AddressComboBox.addItem("Select Address Layer")
         self.ui.StreetComboBox.addItem("Select Street Layer")
 
         if layers:
             for layer in layers:
-                self.ui.AddressComboBox.addItem(layer.name())
-                self.ui.StreetComboBox.addItem(layer.name())
+                if layer.layer().type() == QgsVectorLayer.VectorLayer:
+                   
+                    self.ui.StreetComboBox.addItem(layer.name())
+                    self.ui.AddressComboBox.addItem(layer.name())
         else:
             QMessageBox.warning(self, "No Layers", "No layers are currently loaded in the project.")
 
@@ -38,7 +51,37 @@ class FishboneDialog(QDialog):
         self.ui.StreetComboBox.currentIndexChanged.connect(self.street_layer_changed)
         self.ui.AddressComboBox.currentIndexChanged.connect(self.address_layer_changed)
 
+    def refreshstreet(self):
+        self.refreshing = True
+        self.ui.StreetComboBox.clear()
+        self.ui.StreetComboBox.addItem("Select Street Layer")
+        layers = QgsProject.instance().layerTreeRoot().children()
+        if layers:
+            for layer in layers:
+                if layer.layer().type() == QgsVectorLayer.VectorLayer:
+                    self.ui.StreetComboBox.addItem(layer.name())
+            
+                    
+        self.refreshing = False
+
+    def refreshaddress(self):
+        self.refreshing = True
+        print('refresh')
+        self.ui.AddressComboBox.clear()
+        self.ui.AddressComboBox.addItem("Select Address Layer")
+        layers = QgsProject.instance().layerTreeRoot().children()
+        if layers:
+            for layer in layers:
+                if layer.layer().type() == QgsVectorLayer.VectorLayer:
+                    self.ui.AddressComboBox.addItem(layer.name())
+                    
+        self.refreshing = False
+
     def street_layer_changed(self):
+        if self.refreshing:
+            return
+
+
         print("Street Layer Changed")
         
         
@@ -53,6 +96,8 @@ class FishboneDialog(QDialog):
         self.load_fields(street_layer, self.ui.StreetStreetComboBox)
         
     def address_layer_changed(self):
+        if self.refreshing:
+            return
         print("Address Layer Changed")
         address_layer_name = self.ui.AddressComboBox.currentText()
         if address_layer_name == "Select Address Layer":
