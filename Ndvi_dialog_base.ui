@@ -16,8 +16,8 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>128</x>
-     <y>302</y>
+     <x>140</x>
+     <y>300</y>
      <width>171</width>
      <height>32</height>
     </rect>
@@ -228,37 +228,24 @@
       <bool>true</bool>
      </property>
     </widget>
-    <widget class="QScrollArea" name="scrollArea">
+    <widget class="QLabel" name="label_4">
      <property name="geometry">
       <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>421</width>
-       <height>251</height>
+       <x>10</x>
+       <y>10</y>
+       <width>411</width>
+       <height>231</height>
       </rect>
      </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Generate NDVI:&lt;/span&gt; This tool calculates the Normalized Difference Vegetation Index (NDVI) from satellite imagery to assess vegetation health. NDVI is an important indicator used in remote sensing to measure and monitor plant growth, vegetation cover, and biomass production. &lt;/p&gt;&lt;p&gt;Chose one of the more common band configurations to auto chose the correct band order, or choose the Red and NIR bands manualy.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
-     <property name="cursor" stdset="0">
-      <cursorShape>ArrowCursor</cursorShape>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
      </property>
-     <property name="widgetResizable">
+     <property name="wordWrap">
       <bool>true</bool>
      </property>
-     <widget class="QWidget" name="scrollAreaWidgetContents">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>419</width>
-        <height>249</height>
-       </rect>
-      </property>
-     </widget>
     </widget>
    </widget>
   </widget>

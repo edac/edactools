@@ -234,11 +234,11 @@
        <x>10</x>
        <y>10</y>
        <width>411</width>
-       <height>131</height>
+       <height>171</height>
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Generate NDWI:&lt;/span&gt; This tool calculates the Normalized Difference Water Index (NDWI) from satellite imagery to assess water content in vegetation and monitor water bodies. NDWI is used in remote sensing to distinguish water bodies from vegetation and soil, helping in water resource management and environmental monitoring. &lt;/p&gt;&lt;p&gt;Chose one of the more common band configurations or choose your green and NIR bands manualy.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
