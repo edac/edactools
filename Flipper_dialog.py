@@ -4,6 +4,7 @@ from qgis.core import QgsProject, QgsMapLayer, QgsSingleBandGrayRenderer, QgsCon
 from PyQt5.QtGui import QIcon
 import os
 from qgis.utils import iface
+from PyQt5.QtCore import Qt
 
 class FlipperDialog(QDialog):
 

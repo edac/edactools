@@ -87,7 +87,7 @@ class Ui_FlipperDialog(object):
 
     def retranslateUi(self, FlipperDialog):
         _translate = QtCore.QCoreApplication.translate
-        FlipperDialog.setWindowTitle(_translate("FlipperDialog", "Dialog"))
+        FlipperDialog.setWindowTitle(_translate("FlipperDialog", "Flipper"))
         self.max_spinbox.setPrefix(_translate("FlipperDialog", "Max: "))
         self.band_label.setText(_translate("FlipperDialog", "Band: 1"))
         self.min_spinbox.setPrefix(_translate("FlipperDialog", "Min: "))
