@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TimeSeriesDialog</class>
+ <widget class="QDialog" name="TimeSeriesDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Time Series</string>
+  </property>
+  <layout class="QVBoxLayout" name="dialogLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="Tool">
+      <attribute name="title">
+       <string>Tool</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="toolLayout">
+       <item>
+        <layout class="QHBoxLayout" name="headerLayout">
+         <item>
+          <widget class="QLabel" name="rasters_caption">
+           <property name="text">
+            <string>Rasters to plot: tick the stacks you want, and set the date each one starts on:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="headerSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QToolButton" name="refreshButton">
+           <property name="toolTip">
+            <string>Reload the raster list from the project</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="layer_table">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>170</height>
+          </size>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::NoSelection</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="modeLayout">
+         <item>
+          <widget class="QLabel" name="sample_caption">
+           <property name="text">
+            <string>Sample by:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="point_button">
+           <property name="toolTip">
+            <string>Click a spot on the map to plot the pixel under it</string>
+           </property>
+           <property name="text">
+            <string>Point</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="rect_button">
+           <property name="toolTip">
+            <string>Drag a box on the map to plot the average of the pixels inside it</string>
+           </property>
+           <property name="text">
+            <string>Rectangle</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="polygon_button">
+           <property name="toolTip">
+            <string>Click vertices on the map, right-click to close the shape</string>
+           </property>
+           <property name="text">
+            <string>Polygon</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="selection_button">
+           <property name="toolTip">
+            <string>Average the pixels inside the polygons currently selected in a vector layer</string>
+           </property>
+           <property name="text">
+            <string>Selected features</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="modeSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="clear_button">
+           <property name="text">
+            <string>Clear</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="status_label">
+         <property name="text">
+          <string>Pick a sampling mode, then click or draw on the map.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="chart_container" native="true">
+         <layout class="QVBoxLayout" name="chart_layout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="exportLayout">
+         <item>
+          <spacer name="exportSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="save_png_button">
+           <property name="text">
+            <string>Save chart…</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="export_csv_button">
+           <property name="text">
+            <string>Export CSV…</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="Table">
+      <attribute name="title">
+       <string>Table</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="tableLayout">
+       <item>
+        <widget class="QLabel" name="table_caption">
+         <property name="text">
+          <string>The same values the chart is drawing, one row per date.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="results_table">
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="Help">
+      <attribute name="title">
+       <string>Help</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="helpLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>The Time Series tool plots how the values of one or more 3D rasters change over time.
+
+Tick the rasters you want in the table, and give each one the date its first band was captured plus the step between bands: a daily stack steps 1 day, a MODIS composite stack steps 16 days. Each raster keeps its own start date and step, so stacks with different cadences still line up on one date axis.
+
+Then choose how to sample. Point plots the single pixel under the spot you click. Rectangle and Polygon let you draw an area on the map and plot the average of every pixel inside it, one average per band. Selected features does the same using the polygons already selected in a vector layer, which is handy for repeating the same field or watershed boundary.
+
+Hover the chart to read exact values, and use the Table tab or Export CSV to get the numbers out. Pixels marked as nodata are left out of the averages and break the line rather than being drawn as zero.</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

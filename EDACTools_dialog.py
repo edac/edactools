@@ -5,6 +5,7 @@ from .EDACTools_dialog_base import Ui_EDACToolsDialog
 from .Fishbone_dialog import FishboneDialog
 from .StreetParity_dialog import StreetParityDialog
 from .Flipper_dialog import FlipperDialog
+from .TimeSeries_dialog import TimeSeriesDialog
 from .Indices_dialog import NDVIDialog, NDWIDialog, EVI2Dialog, EVIDialog
 
 import os
@@ -18,31 +19,22 @@ class EDACToolsDialog(QDialog):
         Initialize the dialog
         """
         super().__init__(parent)
-        
-        if self.CheckDependencies():
-            self.ui = Ui_EDACToolsDialog()
-            self.ui.setupUi(self)
-            self.plugin_dir = os.path.dirname(__file__)
-            self.fishbone_dialog = None  # Keep a reference to the Fishbone dialog instance
-            self.street_parity_dialog = None  # Keep a reference to the Street Parity dialog instance
-            self.flipper_dialog = None  # Keep a reference to the Flipper dialog instance
-            self.ndvi_dialog = None
-            self.ndwi_dialog = None
-            self.evi_dialog = None
-            self.evi2_dialog = None
-            self.init_tree()
-        else:
-            self.reject()
 
-    def CheckDependencies(self):
-        # Check if the required plugins geopandas and shapley are installed
-        try:
-            import geopandas
-            import shapely
-            return True
-        except ImportError:
-            QMessageBox.critical(None, "Error", "The EDACTools plugin requires the geopandas and shapely libraries. Please install them and restart QGIS.")
-            return False
+        # This plugin now relies only on libraries that ship with QGIS
+        # (PyQt, the qgis.* API, GDAL/OGR and numpy), so there is no longer
+        # an external dependency (geopandas/shapely) to check for.
+        self.ui = Ui_EDACToolsDialog()
+        self.ui.setupUi(self)
+        self.plugin_dir = os.path.dirname(__file__)
+        self.fishbone_dialog = None  # Keep a reference to the Fishbone dialog instance
+        self.street_parity_dialog = None  # Keep a reference to the Street Parity dialog instance
+        self.flipper_dialog = None  # Keep a reference to the Flipper dialog instance
+        self.timeseries_dialog = None  # Keep a reference to the Time Series dialog instance
+        self.ndvi_dialog = None
+        self.ndwi_dialog = None
+        self.evi_dialog = None
+        self.evi2_dialog = None
+        self.init_tree()
 
     def init_tree(self):
         """
@@ -75,6 +67,11 @@ class EDACToolsDialog(QDialog):
         flipper_item.setText(0, "Flipper")
         flipper_icon_path = os.path.join(self.plugin_dir, "icons", "flipper.png")
         flipper_item.setIcon(0, QIcon(flipper_icon_path))
+
+        timeseries_item = QTreeWidgetItem(raster_tools_item)
+        timeseries_item.setText(0, "Time Series")
+        timeseries_icon_path = os.path.join(self.plugin_dir, "icons", "curves.png")
+        timeseries_item.setIcon(0, QIcon(timeseries_icon_path))
 
         #indices sub menu
         indices_item = QTreeWidgetItem(raster_tools_item)
@@ -124,6 +121,11 @@ class EDACToolsDialog(QDialog):
                 self.flipper_dialog = FlipperDialog(self)
                 self.flipper_dialog.setWindowFlags(self.flipper_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
             self.flipper_dialog.show()  # Use show() to make the dialog modeless
+        elif item.text(0) == "Time Series":
+            if not self.timeseries_dialog:
+                self.timeseries_dialog = TimeSeriesDialog(self)
+                self.timeseries_dialog.setWindowFlags(self.timeseries_dialog.windowFlags() | Qt.WindowStaysOnTopHint)
+            self.timeseries_dialog.show()  # Use show() to make the dialog modeless
         elif item.text(0) == "NDVI":
             if not self.ndvi_dialog:
                 self.ndvi_dialog = NDVIDialog(self)

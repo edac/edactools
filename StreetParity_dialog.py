@@ -8,16 +8,13 @@ from qgis.core import (
     QgsField,
     QgsProject,
     QgsFields,
-    QgsFeature,
     QgsRuleBasedRenderer,
-    QgsSymbol
+    QgsSymbol,
+    QgsWkbTypes,
+    QgsCoordinateTransform,
 )
-from PyQt5.QtGui import QColor  
+from PyQt5.QtGui import QColor
 from qgis.PyQt.QtCore import QVariant
-import geopandas as gpd
-from shapely.geometry import Point, LineString, MultiLineString, MultiPoint
-from shapely.ops import nearest_points
-import numpy as np
 import os
 from PyQt5.QtGui import QIcon
 
@@ -37,7 +34,7 @@ class StreetParityDialog(QDialog):
             for layer in layers:
                 if layer.layer().type() == QgsVectorLayer.VectorLayer:
                     self.ui.AddressLayerComboBox.addItem(layer.name())
-                
+
         self.refreshing = False
 
     def refresh_street(self):
@@ -52,7 +49,7 @@ class StreetParityDialog(QDialog):
         self.refreshing = False
 
     def load_layers(self):
-        
+
         if self.refreshing:
             return
         print("load layers running")
@@ -92,10 +89,10 @@ class StreetParityDialog(QDialog):
         self.plugin_dir = os.path.dirname(__file__)
         self.ui = Ui_StreetParityDialog()
         self.ui.setupUi(self)
-        self.setWindowModality(Qt.NonModal) 
+        self.setWindowModality(Qt.NonModal)
         self.refreshing = False
         self.load_layers()
-        
+
         refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
         self.ui.AddressRefreshButton.setIcon(QIcon(refresh_button_icon))
         self.ui.StreetRefreshButton.setIcon(QIcon(refresh_button_icon))
@@ -110,231 +107,39 @@ class StreetParityDialog(QDialog):
         self.ui.StreetLayerComboBox.currentIndexChanged.connect(self.update_street_fields)
         # when the address layer is changed, update the address field combo box
         self.ui.AddressLayerComboBox.currentIndexChanged.connect(self.update_address_fields)
-    
 
-    def nearest_segment_to_point(self, point, segments):
-        """Find the nearest segment to a point from a GeoDataFrame of segments."""
-        if segments.empty:
+    def _point_from_geometry(self, geom):
+        """Return a single representative QgsPointXY for a point geometry.
+
+        Handles single points and multipoints (first vertex), matching the old
+        shapely ``Point(x[0])`` behaviour. Returns None for empty geometry.
+        """
+        if geom is None or geom.isEmpty():
             return None
-        
-        distances = segments.geometry.apply(lambda segment: point.distance(segment))
-        
-        if distances.empty:
-            return None
-        
-        min_distance_index = distances.idxmin()
-        
-        if min_distance_index not in segments.index:
-            return None
-        
-        return segments.loc[min_distance_index]
-
-    def nearest_inner_line(self, point, line):
-        """Find the nearest inner line to a point from a LineString or MultiLineString."""
-        if isinstance(line, LineString):
-            return list(line.coords)
-        
-        elif isinstance(line, MultiLineString):
-            nearest_segment_coords = None
-            min_distance = float('inf')
-
-            for single_line in line.geoms:
-                for i in range(len(single_line.coords) - 1):
-                    segment = LineString([single_line.coords[i], single_line.coords[i + 1]])
-                    distance = point.distance(segment)
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_segment_coords = (single_line.coords[i], single_line.coords[i + 1])
-
-            return nearest_segment_coords
-        
-        else:
-            raise ValueError("The line should be either LineString or MultiLineString.")
-
-    def get_orientation_and_direction(self, points):
-        """Determine the orientation and direction of a line from a list of points."""
-        minx, miny = float('inf'), float('inf')
-        maxx, maxy = -float('inf'), -float('inf')
-
-        for x, y in points:
-            minx, maxx = min(minx, x), max(maxx, x)
-            miny, maxy = min(miny, y), max(maxy, y)
-
-        orientation = 'x' if maxx - minx > maxy - miny else 'y'
-
-        if orientation == 'x':
-            direction = 'increasing' if points[0][0] < points[1][0] else 'decreasing'
-        else:
-            direction = 'increasing' if points[0][1] < points[1][1] else 'decreasing'
-        
-        return orientation, direction
+        if geom.isMultipart():
+            pts = geom.asMultiPoint()
+            return pts[0] if pts else None
+        return geom.asPoint()
 
     def calculate_parity(self, addresses):
-        if all(num % 2 == 0 for num in addresses):
+        """Return 'even', 'odd' or 'both' for a list of address numbers.
+
+        Non-numeric values are ignored. An empty list yields 'even', preserving
+        the original behaviour (``all()`` over an empty sequence is True).
+        """
+        numbers = []
+        for value in addresses:
+            try:
+                numbers.append(int(value))
+            except (TypeError, ValueError):
+                continue
+
+        if all(num % 2 == 0 for num in numbers):
             return 'even'
-        elif all(num % 2 != 0 for num in addresses):
+        elif all(num % 2 != 0 for num in numbers):
             return 'odd'
         else:
             return 'both'
-
-
-    def calculate_angle_from_north(self, line):
-        """Calculate the angle from the north of a line."""
-        if isinstance(line, LineString):
-            line = [line.coords[0], line.coords[1]]
-        elif isinstance(line, MultiLineString):
-            line = [line.geoms[0].coords[0], line.geoms[0].coords[1]]
-        else:
-            raise ValueError("The line should be either LineString or MultiLineString.")
-
-        x1, y1 = line[0]
-        x2, y2 = line[1]
-
-        angle = np.arctan2(x2 - x1, y2 - y1) * 180 / np.pi
-        return angle
-
-    def determine_position(self, fish_bone_line, last_two_points):
-        # Extract coordinates from lines as numpy arrays
-        p1 = np.array(fish_bone_line.coords[0])
-        p2 = np.array(fish_bone_line.coords[1])
-        p3 = np.array(last_two_points.coords[0])
-        p4 = np.array(last_two_points.coords[1])
-
-        # Convert to 3D vectors by adding a zero z-component
-        p1_3d = np.array([p1[0], p1[1], 0])
-        p2_3d = np.array([p2[0], p2[1], 0])
-        p3_3d = np.array([p3[0], p3[1], 0])
-        p4_3d = np.array([p4[0], p4[1], 0])
-
-        # Direction vectors
-        v1 = p2_3d - p1_3d
-        v2 = p4_3d - p3_3d
-
-        # Cross product of v1 and v2
-        cross_product = np.cross(v1, v2)
-
-        # Check the z-component of the cross product
-        z_component = cross_product[2]
-
-        if z_component > 0:
-            return "left"
-        elif z_component < 0:
-            return "right"
-        else:
-            return "collinear"
-
-    def parity(self, addresses, streets, street_street_field='STR_NAME', address_street_field='STR_NAME', address_number_field='ADD_NUMBER'):
-        """Determine the parity of the addresses on the left and right sides of the streets."""
-        if isinstance(addresses['geometry'].iloc[0], MultiPoint):
-            addresses['geometry'] = addresses['geometry'].apply(lambda x: Point(x[0]))
-
-        street_addresses_by_side = {}
-        address_count = len(addresses)
-        progress_dialog = QProgressDialog("Computing Parity...", "Cancel", 0, address_count, self)
-        progress_dialog.setWindowTitle("Parity Analysis")
-        progress_dialog.setWindowModality(Qt.WindowModal)
-        progress_dialog.show()
-
-        for i, address in enumerate(addresses.itertuples(), start=1):
-            if progress_dialog.wasCanceled():
-                break
-
-            street_name = getattr(address, address_street_field)
-            street_segments = streets[streets[street_street_field] == street_name]
-            point = address.geometry
-            nearest_segment = self.nearest_segment_to_point(point, street_segments)
-            angle = self.calculate_angle_from_north(nearest_segment.geometry)
-         
-            if nearest_segment is None:
-                continue
-
-            if nearest_segment.unique_id not in street_addresses_by_side:
-                street_addresses_by_side[nearest_segment.unique_id] = {"left_addresses": [], "right_addresses": []}
-
-            nearest_point = nearest_points(nearest_segment.geometry, point)[0]
-            inner_line_coords = self.nearest_inner_line(nearest_point, nearest_segment.geometry)
-            #last point of the inner line
-            last_point =Point(nearest_segment.geometry.geoms[-1].coords[-1])
-            #last two points of the inner line as a line
-            last_two_points = LineString(nearest_segment.geometry.geoms[-1].coords[-2:])
-
-
-
-            if nearest_point==last_point:
-                
-
-                fish_bone_line = LineString([point,nearest_point])
-
-                position = self.determine_position(fish_bone_line, last_two_points)
-                if position == "left":
-                    street_addresses_by_side[nearest_segment.unique_id]["left_addresses"].append(getattr(address, address_number_field))
-                elif position == "right":
-                    street_addresses_by_side[nearest_segment.unique_id]["right_addresses"].append(getattr(address, address_number_field))
-                progress_dialog.setValue(i)
-            else:
-
-
-                orientation, direction = self.get_orientation_and_direction(inner_line_coords)
-
-                attributes = {address_number_field: getattr(address, address_number_field), address_street_field: getattr(address, address_street_field)}
-                if orientation == 'x':
-                    attributes["SIDE"] = "left" if (direction == 'increasing' and point.y > nearest_point.y) or (direction == 'decreasing' and point.y < nearest_point.y) else "right"
-                else:
-                    attributes["SIDE"] = "left" if (direction == 'increasing' and point.x < nearest_point.x) or (direction == 'decreasing' and point.x > nearest_point.x) else "right"
-
-                address_direction = attributes["SIDE"]
-                street_addresses_by_side[nearest_segment.unique_id][f"{address_direction}_addresses"].append(getattr(address, address_number_field))
-                progress_dialog.setValue(i)
-
-        street_parity = {}
-        for id, sides in street_addresses_by_side.items():
-            left_addresses, right_addresses = sides['left_addresses'], sides['right_addresses']
-            street_parity[id] = {
-                "PARITY_L": self.calculate_parity(left_addresses),
-                "PARITY_R": self.calculate_parity(right_addresses)
-            }
-
-        return street_parity
-
-    def update_parities(self, streets, parity_result):
-        """Update the parity values of the streets GeoDataFrame."""
-        streets['PARITY_L'] = None
-        streets['PARITY_R'] = None
-
-        for id, parities in parity_result.items():
-            streets.loc[streets['unique_id'] == id, 'PARITY_L'] = parities['PARITY_L']
-            streets.loc[streets['unique_id'] == id, 'PARITY_R'] = parities['PARITY_R']
-
-        return streets
-
-    def create_new_layer(self, updated_gdf, original_layer):
-        """Create a new QGIS layer with the updated GeoDataFrame."""
-        # Define the fields for the new layer
-        fields = QgsFields()
-        for field in original_layer.fields():
-            fields.append(field)
-        fields.append(QgsField('PARITY_L', QVariant.String))
-        fields.append(QgsField('PARITY_R', QVariant.String))
-
-        # Create a new vector layer
-        crs = original_layer.crs().toWkt()
-        new_layer = QgsVectorLayer(f'LineString?crs={crs}', 'Updated Streets', 'memory')
-        new_layer_data = new_layer.dataProvider()
-        new_layer_data.addAttributes(fields)
-        new_layer.updateFields()
-
-        # Add the updated features to the new layer
-        for idx, row in updated_gdf.iterrows():
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt(row['geometry'].wkt))
-            feature.setAttributes(list(row[original_layer.fields().names()]) + [row['PARITY_L'], row['PARITY_R']])
-            new_layer_data.addFeature(feature)
-
-        # Apply rule-based styling
-        self.apply_rule_based_style(new_layer)
-
-        # Add the new layer to the project
-        QgsProject.instance().addMapLayer(new_layer)
 
     def apply_rule_based_style(self, layer):
         """Apply rule-based style to the layer."""
@@ -364,6 +169,46 @@ class StreetParityDialog(QDialog):
         layer.setRenderer(renderer)
         layer.triggerRepaint()
 
+    def build_output_layer(self, street_layer, street_features, sides, address_number_field):
+        """Create a memory layer copying the street layer plus PARITY_L/PARITY_R."""
+        fields = QgsFields()
+        for field in street_layer.fields():
+            fields.append(field)
+        fields.append(QgsField('PARITY_L', QVariant.String))
+        fields.append(QgsField('PARITY_R', QVariant.String))
+
+        crs = street_layer.crs()
+        crs_ref = crs.authid() if crs.authid() else crs.toWkt()
+        geom_type = QgsWkbTypes.displayString(street_layer.wkbType())
+        new_layer = QgsVectorLayer('%s?crs=%s' % (geom_type, crs_ref),
+                                   'Updated Streets', 'memory')
+        provider = new_layer.dataProvider()
+        provider.addAttributes(fields)
+        new_layer.updateFields()
+
+        out_features = []
+        for sf in street_features:
+            parity = sides.get(sf.id())
+            if parity is None:
+                # No addresses matched this segment (matches the old behaviour
+                # of leaving PARITY_L/PARITY_R as NULL).
+                parity_l = None
+                parity_r = None
+            else:
+                parity_l = self.calculate_parity(parity['left'])
+                parity_r = self.calculate_parity(parity['right'])
+
+            feature = QgsFeature(new_layer.fields())
+            feature.setGeometry(sf.geometry())
+            feature.setAttributes(sf.attributes() + [parity_l, parity_r])
+            out_features.append(feature)
+
+        provider.addFeatures(out_features)
+        new_layer.updateExtents()
+
+        self.apply_rule_based_style(new_layer)
+        QgsProject.instance().addMapLayer(new_layer)
+
     def run(self):
         street_layer_name = self.ui.StreetLayerComboBox.currentText()
         address_layer_name = self.ui.AddressLayerComboBox.currentText()
@@ -372,27 +217,80 @@ class StreetParityDialog(QDialog):
             QMessageBox.warning(self, "Selection Error", "Please select both an address layer and a street layer.")
             return
 
-        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
-        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
         address_street_field = self.ui.AddressLayerStreetFieldComboBox.currentText()
         address_number_field = self.ui.AddressLayerAddressNumberFieldComboBox.currentText()
         street_street_field = self.ui.StreetLayerStreetFieldComboBox.currentText()
+        if (address_street_field in ("", "Select Field")
+                or address_number_field in ("", "Select Field")
+                or street_street_field in ("", "Select Field")):
+            QMessageBox.warning(self, "Selection Error",
+                                "Please select the street-name field for both layers and the address-number field.")
+            return
 
-        address_gdf = gpd.GeoDataFrame.from_features([feature for feature in address_layer.getFeatures()])
-        street_gdf = gpd.GeoDataFrame.from_features([feature for feature in street_layer.getFeatures()])
+        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
+        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
 
-        # Add a unique identifier
-        address_gdf['unique_id'] = np.arange(len(address_gdf))
-        street_gdf['unique_id'] = np.arange(len(street_gdf))
+        # Work in the street layer's CRS and transform address points into it.
+        street_crs = street_layer.crs()
+        same_crs = address_layer.crs() == street_crs
+        transform = QgsCoordinateTransform(address_layer.crs(), street_crs,
+                                           QgsProject.instance())
 
-        # Adding empty parity columns to the GeoDataFrame
-        street_gdf['PARITY_L'] = None
-        street_gdf['PARITY_R'] = None
+        # Group street features by street name for quick lookup.
+        street_features = list(street_layer.getFeatures())
+        streets_by_name = {}
+        for sf in street_features:
+            geom = sf.geometry()
+            if geom is None or geom.isEmpty():
+                continue
+            streets_by_name.setdefault(sf[street_street_field], []).append(sf)
 
-        parity_result = self.parity(address_gdf, street_gdf, street_street_field, address_street_field, address_number_field)
-        updated_streets = self.update_parities(street_gdf, parity_result)
+        # For each street feature, collect the address numbers falling on each
+        # side of the segment. sides[feature_id] = {"left": [...], "right": [...]}
+        sides = {}
 
-        self.create_new_layer(updated_streets, street_layer)
+        address_features = list(address_layer.getFeatures())
+        progress_dialog = QProgressDialog("Computing Parity...", "Cancel", 0,
+                                          len(address_features), self)
+        progress_dialog.setWindowTitle("Parity Analysis")
+        progress_dialog.setWindowModality(Qt.WindowModal)
+        progress_dialog.show()
 
-        
+        for i, address in enumerate(address_features, start=1):
+            if progress_dialog.wasCanceled():
+                break
+            progress_dialog.setValue(i)
+
+            point = self._point_from_geometry(address.geometry())
+            if point is None:
+                continue
+            if not same_crs:
+                point = transform.transform(point)
+
+            street_name = address[address_street_field]
+            number = address[address_number_field]
+            candidates = streets_by_name.get(street_name, [])
+
+            # Find the nearest matching street segment. closestSegmentWithContext
+            # returns, in one call, the squared distance to the nearest segment
+            # and whether the point lies left or right of it (leftOf < 0 => left).
+            # This replaces the shapely nearest_points / cross-product logic.
+            best_sqr_dist = float("inf")
+            best_fid = None
+            best_left_of = 0
+            for sf in candidates:
+                sqr_dist, _min_pt, _after, left_of = \
+                    sf.geometry().closestSegmentWithContext(point)
+                if sqr_dist < best_sqr_dist:
+                    best_sqr_dist = sqr_dist
+                    best_fid = sf.id()
+                    best_left_of = left_of
+            if best_fid is None:
+                continue
+
+            side = "left" if best_left_of < 0 else "right"
+            sides.setdefault(best_fid, {"left": [], "right": []})[side].append(number)
+
+        self.build_output_layer(street_layer, street_features, sides, address_number_field)
+
         self.accept()

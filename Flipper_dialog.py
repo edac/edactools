@@ -1,10 +1,11 @@
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from .Flipper_dialog_base import Ui_FlipperDialog
+from .band_dates import date_for_band
 from qgis.core import QgsProject, QgsMapLayer, QgsSingleBandGrayRenderer, QgsContrastEnhancement
 from PyQt5.QtGui import QIcon
 import os
 from qgis.utils import iface
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDate
 
 class FlipperDialog(QDialog):
 
@@ -13,7 +14,15 @@ class FlipperDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_FlipperDialog()
         self.ui.setupUi(self)
-        self.setWindowModality(Qt.NonModal) 
+        self.setWindowModality(Qt.NonModal)
+        # Default the contrast stretch to -1..1, the typical NDVI range, since
+        # that's what most users will be flipping through. Widen the allowed
+        # bounds so other indices (EVI, raw DN values, etc.) can still be set.
+        self.ui.min_spinbox.setRange(-1000000.0, 1000000.0)
+        self.ui.max_spinbox.setRange(-1000000.0, 1000000.0)
+        self.ui.min_spinbox.setValue(-1.0)
+        self.ui.max_spinbox.setValue(1.0)
+        self.ui.start_date_edit.setDate(QDate.currentDate())
         self.plugin_dir = os.path.dirname(__file__)
         #add icons to the buttons
         refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
@@ -38,6 +47,10 @@ class FlipperDialog(QDialog):
         self.ui.min_spinbox.valueChanged.connect(self.update_band)
         self.ui.max_spinbox.valueChanged.connect(self.update_band)
         self.ui.band_slider.valueChanged.connect(self.slider_changed)
+        # These only change the readout, so they skip the renderer rebuild in update_band.
+        self.ui.start_date_edit.dateChanged.connect(self.update_labels)
+        self.ui.interval_spinbox.valueChanged.connect(self.update_labels)
+        self.ui.interval_unit_combo.currentIndexChanged.connect(self.update_labels)
         layers = QgsProject.instance().layerTreeRoot().children()
         self.raster_layer = None
         self.current_band = 1
@@ -49,6 +62,8 @@ class FlipperDialog(QDialog):
                 if layer.layer().type() == QgsMapLayer.RasterLayer:
                     self.ui.FlipperRastercomboBox.addItem(layer.name())
         self.ui.FlipperRastercomboBox.currentIndexChanged.connect(self.layer_changed)
+        self.update_labels()
+
     def refresh(self):
         print('refresh')
         self.ui.FlipperRastercomboBox.clear()
@@ -70,6 +85,16 @@ class FlipperDialog(QDialog):
     def slider_changed(self):
         self.current_band = self.ui.band_slider.value()
         self.update_band()
+
+    def band_date(self, band):
+        return date_for_band(self.ui.start_date_edit.date(), band,
+                             self.ui.interval_spinbox.value(),
+                             self.ui.interval_unit_combo.currentText())
+
+    def update_labels(self):
+        self.ui.band_label.setText(f"Band: {self.current_band}")
+        date = self.band_date(self.current_band).toString("yyyy-MM-dd")
+        self.ui.date_label.setText(f"Date: {date}")
 
 
     def layer_changed(self):
@@ -121,7 +146,7 @@ class FlipperDialog(QDialog):
             renderer.setContrastEnhancement(contrast_enhancement)
             self.raster_layer.setRenderer(renderer)
             self.raster_layer.triggerRepaint()
-            self.ui.band_label.setText(f"Band: {self.current_band}")
+            self.update_labels()
 
     def run(self):
         raster_layer_name = self.ui.FlipperRastercomboBox.currentText()

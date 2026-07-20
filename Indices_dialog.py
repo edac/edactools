@@ -5,15 +5,64 @@ from .Evi_dialog_base import Ui_EviDialog
 from .Evi2_dialog_base import Ui_Evi2Dialog
 from qgis.core import QgsProject,QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY, QgsSingleBandGrayRenderer
 from PyQt5.QtCore import Qt
-import geopandas as gpd
-from shapely.geometry import Point, LineString, MultiPoint
-import json
-from shapely.ops import nearest_points
-import json
 from osgeo import gdal
+import numpy as np
 import tempfile
 import os
 from PyQt5.QtGui import QIcon
+
+
+def _write_index_raster(raster_layer, band_indices, compute_fn, out_name, layer_name,
+                        block_rows=512):
+    """Compute a per-pixel raster index block-wise and write it to a temp GeoTIFF.
+
+    Reading the whole raster into memory and doing float64 arithmetic on it is
+    what previously exhausted RAM and threw ``std::bad_alloc`` (crashing QGIS).
+    Here we stream the raster in horizontal strips of ``block_rows`` rows, cast
+    each strip to float32, run ``compute_fn`` on it, and write the strip out, so
+    peak memory is bounded by one strip regardless of the raster's total size.
+
+    ``compute_fn`` receives the requested bands (as float32 numpy arrays, in the
+    order given by ``band_indices``) and must return the index strip. Returns a
+    QgsRasterLayer for the result. Raises on failure; the caller handles it.
+    """
+    ds = gdal.Open(raster_layer.source())
+    if ds is None:
+        raise RuntimeError("Could not open raster: %s" % raster_layer.source())
+    try:
+        xsize = ds.RasterXSize
+        ysize = ds.RasterYSize
+        transform = ds.GetGeoTransform()
+        proj = ds.GetProjection()
+        bands = [ds.GetRasterBand(i) for i in band_indices]
+
+        out_path = os.path.join(tempfile.gettempdir(), out_name)
+        driver = gdal.GetDriverByName("GTiff")
+        out_ds = driver.Create(out_path, xsize, ysize, 1, gdal.GDT_Float32)
+        if out_ds is None:
+            raise RuntimeError("Could not create output raster: %s" % out_path)
+        try:
+            out_ds.SetGeoTransform(transform)
+            out_ds.SetProjection(proj)
+            out_band = out_ds.GetRasterBand(1)
+            out_band.SetNoDataValue(float('nan'))
+
+            for y in range(0, ysize, block_rows):
+                rows = min(block_rows, ysize - y)
+                strips = [b.ReadAsArray(0, y, xsize, rows).astype(np.float32)
+                          for b in bands]
+                # divide/invalid come from zero denominators; they yield nan/inf
+                # which we treat as nodata, so silence the warnings.
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    result = np.asarray(compute_fn(*strips), dtype=np.float32)
+                out_band.WriteArray(result, 0, y)
+            out_band.FlushCache()
+        finally:
+            out_ds = None
+    finally:
+        ds = None
+
+    return QgsRasterLayer(out_path, layer_name)
 
 
 class NDVIDialog(QDialog):
@@ -101,37 +150,22 @@ class NDVIDialog(QDialog):
         else:
             QMessageBox.warning(self, "No Layer", "No layer selected")
             return
-        #get the extent of the raster layer
-        extent = self.raster_layer.extent()
-
-        #using gdal open and read the raster layer
-        ds = gdal.Open(self.raster_layer.source())
-        #get the red and nir bands
-        red_band_array = ds.GetRasterBand(int(red_band)).ReadAsArray()
-        nir_band_array = ds.GetRasterBand(int(nir_band)).ReadAsArray()
-        #get the transformation
-        transform = ds.GetGeoTransform()
-        #we also need the projection
-        proj = ds.GetProjection()
-        #calculate the NDVI
-        ndvi = (nir_band_array - red_band_array) / (nir_band_array + red_band_array)
-        #set any value greater than 1 to nan and any value less than -1 to nan
-        ndvi[ndvi > 1] = float('nan')
-        ndvi[ndvi < -1] = float('nan')
-        #create a new raster layer
-        driver = gdal.GetDriverByName("GTiff")
-        #we need to get the tmp directory regardless of the operating system
-        os_temp_dir = tempfile.gettempdir()
-        out_path = os.path.join(os_temp_dir, "ndvi.tif")
-        out_ds = driver.Create(out_path, self.raster_layer.width(), self.raster_layer.height(), 1, gdal.GDT_Float32)
-        out_ds.SetGeoTransform(transform)
-        out_ds.SetProjection(proj)
-        out_band = out_ds.GetRasterBand(1)
-        out_band.WriteArray(ndvi)
-        out_band.FlushCache()
-        out_ds = None
+        #calculate NDVI = (NIR - Red) / (NIR + Red), streamed block-wise
+        def compute(nir, red):
+            ndvi = (nir - red) / (nir + red)
+            #anything outside the valid [-1, 1] range becomes nodata
+            ndvi[ndvi > 1] = np.nan
+            ndvi[ndvi < -1] = np.nan
+            return ndvi
+        try:
+            ndvi_layer = _write_index_raster(
+                self.raster_layer, [int(nir_band), int(red_band)],
+                compute, "ndvi.tif", "NDVI")
+        except Exception as e:
+            QMessageBox.critical(self, "NDVI failed",
+                                 "Could not compute NDVI:\n%s" % e)
+            return
         #add the raster layer to the map
-        ndvi_layer = QgsRasterLayer(out_path, "NDVI")
         QgsProject.instance().addMapLayer(ndvi_layer)
         self.accept()
 
@@ -220,36 +254,22 @@ class NDWIDialog(QDialog):
         else:
             QMessageBox.warning(self, "No Layer", "No layer selected")
             return
-        #get the extent of the raster layer
-        extent = self.raster_layer.extent()
-        #using gdal open and read the raster layer
-        ds = gdal.Open(self.raster_layer.source())
-        #get the green and nir bands
-        green_band_array = ds.GetRasterBand(int(green_band)).ReadAsArray()
-        nir_band_array = ds.GetRasterBand(int(nir_band)).ReadAsArray()
-        #get the transformation
-        transform = ds.GetGeoTransform()
-        #we also need the projection
-        proj = ds.GetProjection()
-        #calculate the NDVI
-        ndwi = (green_band_array-nir_band_array) / (green_band_array+nir_band_array)
-        #set any value greater than 1 to nan and any value less than -1 to nan
-        ndwi[ndwi > 1] = float('nan')
-        ndwi[ndwi < -1] = float('nan')
-        #create a new raster layer
-        driver = gdal.GetDriverByName("GTiff")
-        #we need to get the tmp directory regardless of the operating system
-        os_temp_dir = tempfile.gettempdir()
-        out_path = os.path.join(os_temp_dir, "ndwi.tif")
-        out_ds = driver.Create(out_path, self.raster_layer.width(), self.raster_layer.height(), 1, gdal.GDT_Float32)
-        out_ds.SetGeoTransform(transform)
-        out_ds.SetProjection(proj)
-        out_band = out_ds.GetRasterBand(1)
-        out_band.WriteArray(ndwi)
-        out_band.FlushCache()
-        out_ds = None
+        #calculate NDWI = (Green - NIR) / (Green + NIR), streamed block-wise
+        def compute(green, nir):
+            ndwi = (green - nir) / (green + nir)
+            #anything outside the valid [-1, 1] range becomes nodata
+            ndwi[ndwi > 1] = np.nan
+            ndwi[ndwi < -1] = np.nan
+            return ndwi
+        try:
+            ndwi_layer = _write_index_raster(
+                self.raster_layer, [int(green_band), int(nir_band)],
+                compute, "ndwi.tif", "NDWI")
+        except Exception as e:
+            QMessageBox.critical(self, "NDWI failed",
+                                 "Could not compute NDWI:\n%s" % e)
+            return
         #add the raster layer to the map
-        ndwi_layer = QgsRasterLayer(out_path, "NDWI")
         QgsProject.instance().addMapLayer(ndwi_layer)
         self.accept()
 
@@ -348,44 +368,28 @@ class EVIDialog(QDialog):
         #we will use a message box that can be closed later
 
         
-        #get the extent of the raster layer
-        extent = self.raster_layer.extent()
-        #using gdal open and read the raster layer
-        ds = gdal.Open(self.raster_layer.source())
-        #get the red, nir and blue bands
-        red_band_array = ds.GetRasterBand(int(red_band)).ReadAsArray()
-        nir_band_array = ds.GetRasterBand(int(nir_band)).ReadAsArray()
-        blue_band_array = ds.GetRasterBand(int(blue_band)).ReadAsArray()
         Gval = self.ui.GValue.value()
         C1val = self.ui.C1Value.value()
         C2val = self.ui.C2Value.value()
         L = self.ui.LValue.value()
 
-        #get the transformation
-        transform = ds.GetGeoTransform()
-        #we also need the projection
-        proj = ds.GetProjection()
-        #calculate the NDVI
-        evi = Gval * ((nir_band_array - red_band_array) / (nir_band_array + C1val * red_band_array - C2val * blue_band_array + L))
-        #set any value greater than 1 to nan and any value less than -1 to nan
-        # evi[evi > 1] = float('nan')
-        # evi[evi < -1] = float('nan')
-        #set 0 to nan
-        evi[evi == 0] = float('nan')
-        #create a new raster layer
-        driver = gdal.GetDriverByName("GTiff")
-        #we need to get the tmp directory regardless of the operating system
-        os_temp_dir = tempfile.gettempdir()
-        out_path = os.path.join(os_temp_dir, "evi.tif")
-        out_ds = driver.Create(out_path, self.raster_layer.width(), self.raster_layer.height(), 1, gdal.GDT_Float32)
-        out_ds.SetGeoTransform(transform)
-        out_ds.SetProjection(proj)
-        out_band = out_ds.GetRasterBand(1)
-        out_band.WriteArray(evi)
-        out_band.FlushCache()
-        out_ds = None
+        #calculate EVI = G * (NIR - Red) / (NIR + C1*Red - C2*Blue + L),
+        #streamed block-wise to keep memory bounded
+        def compute(nir, red, blue):
+            evi = Gval * ((nir - red) / (nir + C1val * red - C2val * blue + L))
+            #set 0 to nan
+            evi[evi == 0] = np.nan
+            return evi
+        try:
+            evi_layer = _write_index_raster(
+                self.raster_layer,
+                [int(nir_band), int(red_band), int(blue_band)],
+                compute, "evi.tif", "EVI")
+        except Exception as e:
+            QMessageBox.critical(self, "EVI failed",
+                                 "Could not compute EVI:\n%s" % e)
+            return
         #add the raster layer to the map
-        evi_layer = QgsRasterLayer(out_path, "EVI")
         if evi_layer.isValid():
             # Get the raster renderer
             renderer = evi_layer.renderer()
@@ -495,43 +499,27 @@ class EVI2Dialog(QDialog):
         #we will use a message box that can be closed later
  
 
-        #get the extent of the raster layer
-        extent = self.raster_layer.extent()
-        #using gdal open and read the raster layer
-        ds = gdal.Open(self.raster_layer.source())
-        #get the red and nir bands
-        red_band_array = ds.GetRasterBand(int(red_band)).ReadAsArray()
-        nir_band_array = ds.GetRasterBand(int(nir_band)).ReadAsArray()
-        #get the transformation
-        transform = ds.GetGeoTransform()
-        #we also need the projection
-        proj = ds.GetProjection()
         #get the G value
         Gval = self.ui.GValue.value()
         #get the RedRefValue
         RedRefValue = self.ui.RedRefValue.value()
 
-        #calculate the EVI2
-        evi2 = Gval * ((nir_band_array - red_band_array) / (nir_band_array + RedRefValue * red_band_array+1))
-        #set any value greater than 1 to nan and any value less than -1 to nan
-        # evi2[evi2 > 1] = float('nan')
-        # evi2[evi2 < -1] = float('nan')
-        #set 0 to nan
-        evi2[evi2 == 0] = float('nan')
-        #create a new raster layer
-        driver = gdal.GetDriverByName("GTiff")
-        #we need to get the tmp directory regardless of the operating system
-        os_temp_dir = tempfile.gettempdir()
-        out_path = os.path.join(os_temp_dir, "evi2.tif")
-        out_ds = driver.Create(out_path, self.raster_layer.width(), self.raster_layer.height(), 1, gdal.GDT_Float32)
-        out_ds.SetGeoTransform(transform)
-        out_ds.SetProjection(proj)
-        out_band = out_ds.GetRasterBand(1)
-        out_band.WriteArray(evi2)
-        out_band.FlushCache()
-        out_ds = None
+        #calculate EVI2 = G * (NIR - Red) / (NIR + RedRef*Red + 1),
+        #streamed block-wise to keep memory bounded
+        def compute(nir, red):
+            evi2 = Gval * ((nir - red) / (nir + RedRefValue * red + 1))
+            #set 0 to nan
+            evi2[evi2 == 0] = np.nan
+            return evi2
+        try:
+            evi2_layer = _write_index_raster(
+                self.raster_layer, [int(nir_band), int(red_band)],
+                compute, "evi2.tif", "EVI2")
+        except Exception as e:
+            QMessageBox.critical(self, "EVI2 failed",
+                                 "Could not compute EVI2:\n%s" % e)
+            return
         #add the raster layer to the map
-        evi2_layer = QgsRasterLayer(out_path, "EVI2")
         if evi2_layer.isValid():
             # Get the raster renderer
             renderer = evi2_layer.renderer()

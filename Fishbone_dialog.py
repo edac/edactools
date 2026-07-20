@@ -1,12 +1,15 @@
 from PyQt5.QtWidgets import QDialog, QMessageBox, QProgressDialog
 from .Fishbone_dialog_base import Ui_FishboneDialog
-from qgis.core import QgsProject, QgsVectorLayer
+from qgis.core import (
+    QgsProject,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsField,
+    QgsGeometry,
+    QgsCoordinateTransform,
+)
 from PyQt5.QtCore import Qt
-import geopandas as gpd
-from shapely.geometry import Point, LineString, MultiPoint
-import json
-from shapely.ops import nearest_points
-import json
+from qgis.PyQt.QtCore import QVariant
 import os
 from PyQt5.QtGui import QIcon
 
@@ -22,7 +25,7 @@ class FishboneDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_FishboneDialog()
         self.ui.setupUi(self)
-        self.setWindowModality(Qt.NonModal) 
+        self.setWindowModality(Qt.NonModal)
         self.plugin_dir = os.path.dirname(__file__)
         layers = QgsProject.instance().layerTreeRoot().children()
         refresh_button_icon = os.path.join(self.plugin_dir, "icons", "recycle.png")
@@ -40,7 +43,7 @@ class FishboneDialog(QDialog):
         if layers:
             for layer in layers:
                 if layer.layer().type() == QgsVectorLayer.VectorLayer:
-                   
+
                     self.ui.StreetComboBox.addItem(layer.name())
                     self.ui.AddressComboBox.addItem(layer.name())
         else:
@@ -61,8 +64,8 @@ class FishboneDialog(QDialog):
             for layer in layers:
                 if layer.layer().type() == QgsVectorLayer.VectorLayer:
                     self.ui.StreetComboBox.addItem(layer.name())
-            
-                    
+
+
         self.refreshing = False
 
     def refreshaddress(self):
@@ -75,7 +78,7 @@ class FishboneDialog(QDialog):
             for layer in layers:
                 if layer.layer().type() == QgsVectorLayer.VectorLayer:
                     self.ui.AddressComboBox.addItem(layer.name())
-                    
+
         self.refreshing = False
 
     def street_layer_changed(self):
@@ -84,8 +87,8 @@ class FishboneDialog(QDialog):
 
 
         print("Street Layer Changed")
-        
-        
+
+
         street_layer_name = self.ui.StreetComboBox.currentText()
         if street_layer_name == "Select Street Layer":
             return
@@ -95,7 +98,7 @@ class FishboneDialog(QDialog):
         street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
 
         self.load_fields(street_layer, self.ui.StreetStreetComboBox)
-        
+
     def address_layer_changed(self):
         if self.refreshing:
             return
@@ -106,84 +109,22 @@ class FishboneDialog(QDialog):
         self.ui.AddressStreetComboBox.clear()
         #only INT fields are allowed for street names
         address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
-    
+
         self.load_fields(address_layer, self.ui.AddressStreetComboBox)
 
-        
-        
+    def _point_from_geometry(self, geom):
+        """Return a single representative QgsPointXY for a point geometry.
 
-    def nearest_segment_to_point(self, point, segments):
-        #initialize the minimum distance
-        min_distance = float('inf')
-        #initialize the nearest segment
-        nearest_segment = None
-        #for each segment
-        for i, segment in segments.iterrows():
-            #get the segment geometry
-            segment_geometry = segment['geometry']
-            #get the distance between the point and the segment
-            distance = point.distance(segment_geometry)
-            #if the distance is less than the minimum distance
-            if distance < min_distance:
-                #update the minimum distance
-                min_distance = distance
-                #update the nearest segment
-                nearest_segment = segment
-        #return the nearest segment
-        return nearest_segment 
-    
-    def fishbone(self,addresses, streets, address_street_field, street_street_field):
-        return_json={
-        "type": "FeatureCollection",
-        "name": "fishbone",
-        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::4326" } },
-        "features": []
-        }
-        address_count = len(addresses)
-        progress_dialog = QProgressDialog("Building Fishbone...", "Cancel", 0, address_count, self)
-        progress_dialog.setWindowTitle("Fishbone Generation")
-        progress_dialog.setWindowModality(Qt.WindowModal)
-        progress_dialog.show()
-        #if the addresses dataframe is of type MultiPoint we need to convert it to a Point
-        if isinstance(addresses['geometry'].iloc[0], MultiPoint):
-            addresses['geometry'] = addresses['geometry'].apply(lambda x: Point(x[0]))
-        #for each address find the nearest segment that has the same STR_NAME
-        for i, address in addresses.iterrows():
-
-
-            if progress_dialog.wasCanceled():
-                break
-            #get the street name of the address
-            street_name = address[address_street_field]
-            #get the street segments with the same name
-            street_segments = streets[streets[street_street_field] == street_name]
-            #get the point of the address
-            point = address['geometry']
-        
-
-            #get the nearest segment
-            nearest_segment = self.nearest_segment_to_point(point, street_segments)
-            #
-            if nearest_segment is None:
-                continue
-            #find the nearest point on the segment from the address
-            nearest_point = nearest_segment['geometry'].interpolate(nearest_segment['geometry'].project(point))
-            
-            #create a line between the address and the nearest point
-
-            line = LineString([point, nearest_point])
-            #attributes of the address
-            # attributes =  {"ADD_NUMBER": address['ADD_NUMBER'], "STR_NAME": address[address_street_field]}
-            attributes =  { "STR_NAME": address[address_street_field]}
-            #new we have the line and the attributes of the address let's create a GeoJSON feature
-            feature = {
-                "type": "Feature",
-                "geometry": line.__geo_interface__,
-                "properties": attributes
-            }
-            return_json['features'].append(feature)
-            progress_dialog.setValue(i + 1)
-        return return_json
+        Handles both single-part points and multipoints (taking the first
+        vertex, matching the old shapely ``Point(x[0])`` behaviour). Returns
+        None for empty/invalid geometry.
+        """
+        if geom is None or geom.isEmpty():
+            return None
+        if geom.isMultipart():
+            pts = geom.asMultiPoint()
+            return pts[0] if pts else None
+        return geom.asPoint()
 
     def run(self):
 
@@ -195,31 +136,80 @@ class FishboneDialog(QDialog):
             QMessageBox.warning(self, "Selection Error", "Please select both an address layer and a street layer.")
             return
 
-        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
-        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
-        address_layer_df = gpd.GeoDataFrame.from_features([feature for feature in address_layer.getFeatures()])
-        street_layer_df = gpd.GeoDataFrame.from_features([feature for feature in street_layer.getFeatures()])
-
-        # Ensure the CRS is set for both dataframes
-        if address_layer_df.crs is None:
-            address_layer_df.set_crs(address_layer.crs().authid(), inplace=True)
-
-        if street_layer_df.crs is None:
-            street_layer_df.set_crs(street_layer.crs().authid(), inplace=True)
-
-        # Convert all geometries to the same CRS UTM 13N
-        address_layer_df = address_layer_df.to_crs("EPSG:4326")
-        street_layer_df = street_layer_df.to_crs("EPSG:4326")
-
-
         address_street_field = self.ui.AddressStreetComboBox.currentText()
         street_street_field = self.ui.StreetStreetComboBox.currentText()
-        fb = self.fishbone(address_layer_df, street_layer_df, address_street_field, street_street_field)
+        if address_street_field in ("", "Select Field") or street_street_field in ("", "Select Field"):
+            QMessageBox.warning(self, "Selection Error", "Please select the street-name field for both layers.")
+            return
 
-        json_string = json.dumps(fb)
-      
-        fishbone_layer = QgsVectorLayer(json_string, "fishbone", "ogr")
-        QgsProject.instance().addMapLayer(fishbone_layer)
+        address_layer = QgsProject.instance().mapLayersByName(address_layer_name)[0]
+        street_layer = QgsProject.instance().mapLayersByName(street_layer_name)[0]
+
+        # Work in the street layer's CRS and transform address points into it
+        # (replaces geopandas' to_crs reprojection).
+        street_crs = street_layer.crs()
+        same_crs = address_layer.crs() == street_crs
+        transform = QgsCoordinateTransform(address_layer.crs(), street_crs,
+                                           QgsProject.instance())
+
+        # Group street segment geometries by street name for quick lookup.
+        streets_by_name = {}
+        for sf in street_layer.getFeatures():
+            geom = sf.geometry()
+            if geom is None or geom.isEmpty():
+                continue
+            streets_by_name.setdefault(sf[street_street_field], []).append(geom)
+
+        # Build an in-memory line layer to hold the fishbone lines.
+        out_layer = QgsVectorLayer("LineString?crs=" + street_crs.authid(),
+                                   "fishbone", "memory")
+        provider = out_layer.dataProvider()
+        provider.addAttributes([QgsField("STR_NAME", QVariant.String)])
+        out_layer.updateFields()
+
+        address_features = list(address_layer.getFeatures())
+        progress_dialog = QProgressDialog("Building Fishbone...", "Cancel", 0,
+                                          len(address_features), self)
+        progress_dialog.setWindowTitle("Fishbone Generation")
+        progress_dialog.setWindowModality(Qt.WindowModal)
+        progress_dialog.show()
+
+        out_features = []
+        for i, address in enumerate(address_features):
+            if progress_dialog.wasCanceled():
+                break
+            progress_dialog.setValue(i + 1)
+
+            point = self._point_from_geometry(address.geometry())
+            if point is None:
+                continue
+            if not same_crs:
+                point = transform.transform(point)
+
+            street_name = address[address_street_field]
+            candidates = streets_by_name.get(street_name, [])
+
+            # Find the nearest matching street segment and the closest point on
+            # it. closestSegmentWithContext returns the squared distance and the
+            # projected point in one call (replaces shapely project/interpolate).
+            best_sqr_dist = float("inf")
+            nearest_point = None
+            for segment_geom in candidates:
+                sqr_dist, min_dist_point, _after, _left = \
+                    segment_geom.closestSegmentWithContext(point)
+                if sqr_dist < best_sqr_dist:
+                    best_sqr_dist = sqr_dist
+                    nearest_point = min_dist_point
+            if nearest_point is None:
+                continue
+
+            feature = QgsFeature(out_layer.fields())
+            feature.setGeometry(QgsGeometry.fromPolylineXY([point, nearest_point]))
+            feature.setAttribute("STR_NAME", street_name)
+            out_features.append(feature)
+
+        provider.addFeatures(out_features)
+        out_layer.updateExtents()
+        QgsProject.instance().addMapLayer(out_layer)
 
         self.accept()
-
